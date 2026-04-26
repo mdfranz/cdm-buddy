@@ -34,31 +34,31 @@ When this discipline is applied consistently, two things become visible: gaps (c
 
 The CDM uses five asset classes, and their definitions matter precisely:
 
-**Devices** — Workstations, servers, phones, tablets, IoT, containers. Crucially, this includes the operating system, firmware, and *commodity software* (browsers, email clients, commercial off-the-shelf tools). The key distinguishing test: does the enterprise own the source code? If not, it is a Device-class concern.
+* **Devices** — Workstations, servers, phones, tablets, IoT, containers. Crucially, this includes the operating system, firmware, and *commodity software* (browsers, email clients, commercial off-the-shelf tools). The key distinguishing test: does the enterprise own the source code? If not, it is a Device-class concern.
 
-**Networks** — Communication channels, connections, and protocols. Critically, this is *not* the physical infrastructure — it is the paths and protocols: DNS, BGP, email filtering, web proxies, VPNs, VPCs, CDNs. Networks are the medium through which the other asset classes interact.
+* **Networks** — Communication channels, connections, and protocols. Critically, this is *not* the physical infrastructure — it is the paths and protocols: DNS, BGP, email filtering, web proxies, VPNs, VPCs, CDNs. Networks are the medium through which the other asset classes interact.
 
-**Applications** — Software the enterprise has created and maintains source code for. This includes serverless functions, APIs, and microservices where the organization controls the code. The remediation path differs fundamentally from Devices: you fix your own application code in development using SAST/DAST; you patch commodity software at the device level.
+* **Applications** — Software the enterprise has created and maintains source code for. This includes serverless functions, APIs, and microservices where the organization controls the code. The remediation path differs fundamentally from Devices: you fix your own application code in development using SAST/DAST; you patch commodity software at the device level.
 
-**Data** — Information at rest, in motion, or in use. Databases, S3 buckets, storage blobs, files. Data is the ultimate target in most attacks; the other asset classes are often just the path to it.
+* **Data** — Information at rest, in motion, or in use. Databases, S3 buckets, storage blobs, files. Data is the ultimate target in most attacks; the other asset classes are often just the path to it.
 
-**Users** — People and their associated identities. Note that every other asset class also has identity attributes (devices have certificates, applications have TLS certs, networks have IPs, data has hashes), but Users as an asset class focuses specifically on human identity, behavior, and the accounts people use.
+* **Users** — People and their associated identities. Note that every other asset class also has identity attributes (devices have certificates, applications have TLS certs, networks have IPs, data has hashes), but Users as an asset class focuses specifically on human identity, behavior, and the accounts people use.
 
 ### Axis 2: NIST CSF Functions (What You Are Doing)
 
 The CDM aligns to NIST CSF 2.0's six functions:
 
-**Govern** — Cross-cutting. Strategy, policy, risk appetite, oversight, accountability. Govern does not map to a specific moment in the security lifecycle; it sets the rules under which all other functions operate. Its position spanning the entire horizontal axis reflects this.
+* **Govern** — Cross-cutting. Strategy, policy, risk appetite, oversight, accountability. Govern does not map to a specific moment in the security lifecycle; it sets the rules under which all other functions operate. Its position spanning the entire horizontal axis reflects this.
 
-**Identify** — Structural awareness. Inventory, classification, vulnerability discovery, threat modeling, risk assessments. Identify answers: *what do we have, what is its state, and where are the structural weaknesses?* The output is telemetry about configuration and vulnerabilities, not events.
+* **Identify** — Structural awareness. Inventory, classification, vulnerability discovery, threat modeling, risk assessments. Identify answers: *what do we have, what is its state, and where are the structural weaknesses?* The output is telemetry about configuration and vulnerabilities, not events.
 
-**Protect** — Prevention. Patching, hardening, access controls, encryption, preventive policies. Protect answers: *how do we stop exploitation from occurring?* Protection rules are deterministic and low-false-positive by design — they operate at scale without requiring human review of each decision.
+ **Protect** — Prevention. Patching, hardening, access controls, encryption, preventive policies. Protect answers: *how do we stop exploitation from occurring?* Protection rules are deterministic and low-false-positive by design — they operate at scale without requiring human review of each decision.
 
-**Detect** — Event discovery. Anomaly detection, security analytics, hunting, monitoring. Detect answers: *is something bad happening right now?* Detection rules are intentionally different from protection rules — they are designed to trigger human investigation, not automated action.
+* **Detect** — Event discovery. Anomaly detection, security analytics, hunting, monitoring. Detect answers: *is something bad happening right now?* Detection rules are intentionally different from protection rules — they are designed to trigger human investigation, not automated action.
 
-**Respond** — Containment and investigation. Eradication, forensics, damage assessment, credential rotation. Respond answers: *what happened, how do we stop it, and what was the blast radius?*
+* **Respond** — Containment and investigation. Eradication, forensics, damage assessment, credential rotation. Respond answers: *what happened, how do we stop it, and what was the blast radius?*
 
-**Recover** — Restoration and resilience. Returning to normal operations, restoring services, documenting lessons learned. Recover answers: *how do we get back to where we were, and what do we change so this is less damaging next time?*
+* **Recover** — Restoration and resilience. Returning to normal operations, restoring services, documenting lessons learned. Recover answers: *how do we get back to where we were, and what do we change so this is less damaging next time?*
 
 ---
 
@@ -89,11 +89,11 @@ People              ███       ████     █████    ██�
 Process             █████     █████    █████    █████    █████
 ```
 
-**Technology** is high on the left and diminishes to the right. An asset inventory tool can scan 100,000 endpoints in hours; no human team can match that scale. A firewall enforces access policy millions of times per second. But you cannot automate your way through a complex incident response — the tool can surface data, but a skilled analyst has to reason about it.
+* **Technology** is high on the left and diminishes to the right. An asset inventory tool can scan 100,000 endpoints in hours; no human team can match that scale. A firewall enforces access policy millions of times per second. But you cannot automate your way through a complex incident response — the tool can surface data, but a skilled analyst has to reason about it.
 
-**People** is low on the left and increases sharply to the right. Human judgment and expertise become the binding constraint in Respond and Recover. You can have perfect tooling and still fail at incident response because you have insufficient people with insufficient expertise.
+* **People** is low on the left and increases sharply to the right. Human judgment and expertise become the binding constraint in Respond and Recover. You can have perfect tooling and still fail at incident response because you have insufficient people with insufficient expertise.
 
-**Process** is consistent across the entire spectrum. Process is the connective tissue that makes technology and people effective at every stage. This is why organizations that skip documentation and runbooks find themselves degraded in every function simultaneously.
+* **Process** is consistent across the entire spectrum. Process is the connective tissue that makes technology and people effective at every stage. This is why organizations that skip documentation and runbooks find themselves degraded in every function simultaneously.
 
 The practical implication: if your security investment is heavily skewed toward preventive technology (a common pattern), the dependency continuum predicts that your Respond and Recover functions will be weak — not because you lack tools, but because you lack people and process. The matrix makes this structural imbalance visible.
 
