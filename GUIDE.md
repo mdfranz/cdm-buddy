@@ -2,7 +2,7 @@
 
 This document explains the conceptual foundations of the **Cyber Defense Matrix (CDM)** created by **Sounil Yu**. The goal is to understand *why* the framework is structured the way it is, not just *what* goes in each cell.
 
-For the definitive resource on this framework, please visit [cyberdefensematrix.com](https://cyberdefensematrix.com/) or read the book [*Cyber Defense Matrix: The Essential Guide to Navigating the Cybersecurity Landscape*](https://www.amazon.com/Cyber-Defense-Matrix-Essential-Cybersecurity/dp/1642253818) by Sounil Yu.
+For the definitive resource on this framework, please visit [cyberdefensematrix.com](https://cyberdefensematrix.com/) or read the book [*Cyber Defense Matrix: The Essential Guide to Navigating the Cybersecurity Landscape*](https://www.amazon.com/Cyber-Defense-Matrix-Essential-Cybersecurity/dp/1955419311) by Sounil Yu.
 
 ---
 

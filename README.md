@@ -44,6 +44,6 @@ See [src/README.md](src/README.md) for details on the internal package structure
 This tool is an unofficial companion to the **Cyber Defense Matrix (CDM)** created by **Sounil Yu**. 
 
 - **Official Website**: [cyberdefensematrix.com](https://cyberdefensematrix.com/)
-- **The Book**: [*Cyber Defense Matrix: The Essential Guide to Navigating the Cybersecurity Landscape*](https://www.amazon.com/Cyber-Defense-Matrix-Essential-Cybersecurity/dp/1642253818) by Sounil Yu.
+- **The Book**: [*Cyber Defense Matrix: The Essential Guide to Navigating the Cybersecurity Landscape*](https://www.amazon.com/Cyber-Defense-Matrix-Essential-Cybersecurity/dp/1955419311) by Sounil Yu.
 
 The CDM is a trademark of Sounil Yu. This project is not affiliated with, endorsed by, or sponsored by Sounil Yu or the Cyber Defense Matrix organization.
