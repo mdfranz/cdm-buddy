@@ -1,4 +1,6 @@
-# Cyber Defense Matrix (CDM) Wizard
+![CDM Buddy Logo](cdm-buddy.png)
+
+# Cyber Defense Matrix (CDM) Helper Monkey
 
 An interactive CLI tool to map your security portfolio to Sounil Yu's Cyber Defense Matrix.
 
@@ -22,7 +24,6 @@ An interactive CLI tool to map your security portfolio to Sounil Yu's Cyber Defe
 The easiest way to run the wizard is using `uv`:
 
 ```bash
-cd cdm-wizard
 uv run main.py
 ```
 
@@ -31,7 +32,6 @@ uv run main.py
 To verify the exporter and data structure:
 
 ```bash
-cd cdm-wizard
 uv run -m unittest discover -s tests
 ```
 
