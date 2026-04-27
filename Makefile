@@ -12,15 +12,15 @@ CMD_DIR=./cmd/cdmbuddy
 all: test build
 
 build:
-	$(GOBUILD) -o ../$(BINARY_NAME) $(CMD_DIR)
+	$(GOBUILD) -o $(BINARY_NAME) $(CMD_DIR)
 
 test:
 	$(GOTEST) -v ./...
 
 clean:
 	$(GOCLEAN)
-	rm -f ../$(BINARY_NAME)
-	rm -f ../$(BINARY_UNIX)
+	rm -f $(BINARY_NAME)
+	rm -f $(BINARY_UNIX)
 
 run:
 	$(GOCMD) run $(CMD_DIR)

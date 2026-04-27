@@ -3,4 +3,4 @@ __pycache__/
 *.xlsx
 .pytest_cache/
 *.json
-cdmbuddy
+/cdmbuddy
