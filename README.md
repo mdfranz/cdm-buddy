@@ -4,6 +4,9 @@
 
 An interactive CLI tool to map your security portfolio to Sounil Yu's Cyber Defense Matrix.
 
+
+`NOTE`: This is a work in progress as I'm still trying to figure out how I'll use CDM.
+
 ## Features
 
 - **Guided Mapping**: Interactive prompts with definitions for Asset Classes and NIST Functions.
@@ -48,5 +51,7 @@ This tool is an unofficial companion to the **Cyber Defense Matrix (CDM)** creat
 
 - **Official Website**: [cyberdefensematrix.com](https://cyberdefensematrix.com/)
 - **The Book**: [*Cyber Defense Matrix: The Essential Guide to Navigating the Cybersecurity Landscape*](https://www.amazon.com/Cyber-Defense-Matrix-Navigating-Cybersecurity/dp/B09QP2GSGZ/) by Sounil Yu.
+
+I got inspired to write this after seeing a talk by [Stephen Dyson](https://www.linkedin.com/in/stephen-dyson-cybersecurity/) at [Bsides Charm 2026](https://www.bsidescharm.org/schedule/)
 
 The CDM is a trademark of Sounil Yu. This project is not affiliated with, endorsed by, or sponsored by Sounil Yu or the Cyber Defense Matrix organization.
