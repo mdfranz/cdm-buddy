@@ -128,16 +128,7 @@ func RunEditor(matrix model.Matrix) (model.Matrix, error) {
 					continue
 				}
 
-				// Check if it exists
-				exists := false
-				for _, inst := range matrix[selectedAssetClass] {
-					if strings.EqualFold(inst.Name, newName) {
-						exists = true
-						break
-					}
-				}
-
-				if exists {
+				if model.HasInstance(matrix, selectedAssetClass, newName) {
 					fmt.Printf("\n%s\n", styleRed.Render("❌ That instance already exists."))
 					continue
 				}
@@ -240,8 +231,7 @@ func RunEditor(matrix model.Matrix) (model.Matrix, error) {
 				currentCell := matrix[selectedAssetClass][instIdx].Cells[selectedFunction]
 				newCell := currentCell
 
-				var confirmSave bool
-				var clearCell bool
+				var action string = "save"
 				editForm := huh.NewForm(
 					huh.NewGroup(
 						huh.NewNote().Title(fmt.Sprintf("Editing %s / %s / %s", selectedAssetClass, selectedInstanceName, selectedFunction)),
@@ -256,14 +246,14 @@ func RunEditor(matrix model.Matrix) (model.Matrix, error) {
 							Value(&newCell.Process),
 					),
 					huh.NewGroup(
-						huh.NewConfirm().
-							Title("Clear all data for this cell (Delete Cell Content)?").
-							Value(&clearCell),
-					),
-					huh.NewGroup(
-						huh.NewConfirm().
-							Title("Save changes to this cell?").
-							Value(&confirmSave),
+						huh.NewSelect[string]().
+							Title("Action").
+							Options(
+								huh.NewOption("Save Changes", "save"),
+								huh.NewOption("Clear Cell Content", "clear"),
+								huh.NewOption("Discard Changes", "discard"),
+							).
+							Value(&action),
 					),
 				)
 
@@ -277,17 +267,15 @@ func RunEditor(matrix model.Matrix) (model.Matrix, error) {
 					return matrix, err
 				}
 
-				if clearCell {
+				switch action {
+				case "clear":
 					matrix[selectedAssetClass][instIdx].Cells[selectedFunction] = model.Cell{}
 					fmt.Println(styleRed.Render(fmt.Sprintf("\n🗑️ Cleared cell: %s", selectedFunction)))
-					continue
-				}
-
-				if confirmSave {
+				case "save":
 					// Update the matrix with new values
 					matrix[selectedAssetClass][instIdx].Cells[selectedFunction] = newCell
 					fmt.Println(styleGreen.Render(fmt.Sprintf("\n✓ Saved %s / %s / %s", selectedAssetClass, selectedInstanceName, selectedFunction)))
-				} else {
+				case "discard":
 					fmt.Println(styleDim.Render("\n(Changes discarded)"))
 				}
 			}
