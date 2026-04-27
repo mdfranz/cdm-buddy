@@ -27,6 +27,9 @@ The easiest way to run the wizard is using `uv`:
 uv run main.py
 ```
 
+![sample-run](wizard.png)
+
+
 ### Run Tests
 
 To verify the exporter and data structure:
