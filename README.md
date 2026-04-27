@@ -1,11 +1,10 @@
 ![CDM Buddy Logo](cdm-buddy.png)
 
-# Cyber Defense Matrix (CDM) Helper Monkey
+# Cyber Defense Matrix (CDM) Buddy
 
 An interactive CLI tool to map your security portfolio to Sounil Yu's Cyber Defense Matrix.
 
-
-`NOTE`: This is a work in progress as I'm still trying to figure out how I'll use CDM.
+CDM Buddy helps security teams visualize their coverage, identify gaps, and understand the balance between technology, people, and process across the NIST Cybersecurity Framework functions.
 
 ## Features
 
@@ -13,7 +12,10 @@ An interactive CLI tool to map your security portfolio to Sounil Yu's Cyber Defe
 - **CSF 2.0 Coverage**: Includes the `Govern` function alongside Identify, Protect, Detect, Respond, and Recover.
 - **CDM Principles**: Built-in support for "Left/Right of Boom" and "Applications vs. Devices" logic.
 - **Dependency Mapping**: Capture Technology, People, and Process for every control.
-- **Excel Export**: Generates a styled report with visual cues for strategic analysis.
+- **Smart Resume**: Load existing JSON data and jump directly to specific assets or instances.
+- **Grid Visualization**: Instant terminal-based coverage summary with completion percentages.
+- **Quick-Copy Shortcut**: Duplicate mappings from similar assets to speed up data entry.
+- **Multi-Format Export**: Generates styled Excel reports and raw CSV/JSON data.
 
 ## Requirements
 
@@ -24,7 +26,7 @@ An interactive CLI tool to map your security portfolio to Sounil Yu's Cyber Defe
 
 ### Run the Wizard
 
-The easiest way to run the wizard is using `make`:
+The easiest way to start a new assessment is using `make`:
 
 ```bash
 make run
@@ -38,6 +40,23 @@ go run ./cmd/cdmbuddy
 
 ![sample-run](wizard.png)
 
+### Command Line Options
+
+CDM Buddy supports several flags for automation and resuming work:
+
+| Flag | Shorthand | Description |
+|------|-----------|-------------|
+| `--input` | `-i` | Load CDM data from a JSON file to resume or report |
+| `--output` | `-o` | Output Excel file path (default: `cdm_output.xlsx`) |
+| `--csv` | `-c` | Output CSV file path (default: `cdm_output.csv`) |
+| `--export-json` | | Export raw data as JSON (default: `cdm_data.json`) |
+| `--name` | `-n` | Assessment name (used for default filenames) |
+| `--report` | `-r` | Generate reports and exit without showing the wizard (requires `-i`) |
+
+**Example: Resuming an assessment**
+```bash
+go run ./cmd/cdmbuddy -i my_assessment.json
+```
 
 ### Run Tests
 
@@ -45,12 +64,6 @@ To verify the exporter and data structure:
 
 ```bash
 make test
-```
-
-Or:
-
-```bash
-go test -v ./...
 ```
 
 ## Source Code
@@ -64,6 +77,6 @@ This tool is an unofficial companion to the **Cyber Defense Matrix (CDM)** creat
 - **Official Website**: [cyberdefensematrix.com](https://cyberdefensematrix.com/)
 - **The Book**: [*Cyber Defense Matrix: The Essential Guide to Navigating the Cybersecurity Landscape*](https://www.amazon.com/Cyber-Defense-Matrix-Navigating-Cybersecurity/dp/B09QP2GSGZ/) by Sounil Yu.
 
-I got inspired to write this after seeing a talk by [Stephen Dyson](https://www.linkedin.com/in/stephen-dyson-cybersecurity/) at [Bsides Charm 2026](https://www.bsidescharm.org/schedule/)
+Inspired by [Stephen Dyson](https://www.linkedin.com/in/stephen-dyson-cybersecurity/)'s talk at [BSides Charm 2026](https://www.bsidescharm.org/schedule/).
 
 The CDM is a trademark of Sounil Yu. This project is not affiliated with, endorsed by, or sponsored by Sounil Yu or the Cyber Defense Matrix organization.
