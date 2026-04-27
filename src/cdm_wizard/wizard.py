@@ -1,4 +1,5 @@
 import json
+import sys
 import questionary
 from rich.console import Console
 from rich.table import Table
@@ -10,6 +11,7 @@ from cdm_wizard.model import (
     FUNCTION_DESCRIPTIONS,
     GOVERN_FUNCTIONS,
     RIGHT_OF_BOOM_FUNCTIONS,
+    TECH_EXAMPLES,
     asset_classes,
     empty_matrix,
     functions,
@@ -74,12 +76,19 @@ def load_from_json(path: str) -> dict:
     return data
 
 
+def save_to_json(data: dict, path: str) -> None:
+    with open(path, "w") as f:
+        json.dump(data, f, indent=2)
+
+
 def run_wizard():
     """
     Runs the interactive CLI wizard to collect CDM data.
     """
     assets = asset_classes()
-    function_list = functions()
+    # Move Govern functions to the end for the wizard sequence
+    all_functions = functions()
+    function_list = [f for f in all_functions if f not in GOVERN_FUNCTIONS] + [f for f in all_functions if f in GOVERN_FUNCTIONS]
     data = empty_matrix()
 
     console.print(Panel(
@@ -103,28 +112,32 @@ def run_wizard():
 
     from cdm_wizard.model import ASSET_ICONS
 
-    for asset in assets:
+    total_cells = len(assets) * len(function_list)
+
+    for asset_idx, asset in enumerate(assets):
         icon = ASSET_ICONS.get(asset, "🔹")
-        console.print(f"\n[bold cyan]┏━ {icon} {asset.upper()} " + ("━" * (console.width - len(asset) - 10)) + "[/bold cyan]")
+        console.print(f"\n[bold cyan]{icon} {asset.upper()} " + ("━" * (console.width - len(asset) - 8)) + "[/bold cyan]")
         console.print(f"  [italic dim cyan]{ASSET_DESCRIPTIONS[asset]}[/italic dim cyan]")
 
-        for func in function_list:
+        for func_idx, func in enumerate(function_list):
+            cell_num = asset_idx * len(function_list) + func_idx + 1
+            progress = f"[dim](Asset {asset_idx + 1}/{len(assets)} | Function {func_idx + 1}/{len(function_list)} | Cell {cell_num}/{total_cells})[/dim]"
+
             if func in GOVERN_FUNCTIONS:
                 boom_tag = "[bold yellow]Cross-cutting[/bold yellow]"
-                tech_instruction = "e.g. GRC platform, Policy Portal"
                 people_instruction = "e.g. Security Governance Lead, Risk Committee"
                 process_instruction = "e.g. Risk Exception Process, Security Policy Review"
             else:
                 is_right_of_boom = func in RIGHT_OF_BOOM_FUNCTIONS
                 boom_tag = "[bold red]Right of Boom[/bold red]" if is_right_of_boom else "[bold blue]Left of Boom[/bold blue]"
-                tech_instruction = "e.g. EPP, Firewall, SIEM"
                 people_instruction = "e.g. SOC Analyst, SysAdmin"
                 process_instruction = "e.g. Patch Management SOP, IR Plan"
 
-            console.print(f"\n  [bold reverse] {func} [/bold reverse] [bold]{boom_tag}[/bold]")
+            tech_instruction = TECH_EXAMPLES.get((asset, func), "e.g. vendor tool or platform name")
+
+            console.print(f"\n  [bold reverse] {func} [/bold reverse] [bold]{boom_tag}[/bold] {progress}")
             console.print(f"  [dim]{FUNCTION_DESCRIPTIONS[func]}[/dim]")
 
-            # Context-specific mapping tips
             tip_prefix = "  [italic yellow]💡 Tip:[/italic yellow]"
             if func == "Govern":
                 console.print(f"{tip_prefix} [italic dim]Think of this as the 'Context'—policies, risk appetite, and oversight governing this asset class.[/italic dim]")
@@ -160,16 +173,30 @@ def run_wizard():
                     break
 
                 except (KeyboardInterrupt, EOFError):
-                    console.print("") # New line after the interrupt symbol
-                    if questionary.confirm("Exit wizard and save progress?", qmark="", default=False).ask():
-                        return data
+                    console.print("")
+                    if questionary.confirm("Are you sure you want to quit?", qmark="", default=False).ask():
+                        save_choice = questionary.select(
+                            "Save progress before exiting?",
+                            choices=["Save as Excel", "Save as JSON", "Quit without saving"],
+                            qmark="",
+                        ).ask()
+                        if save_choice == "Save as Excel":
+                            return data
+                        elif save_choice == "Save as JSON":
+                            json_path = questionary.text("JSON output path:", default="cdm_progress.json", qmark="").ask()
+                            save_to_json(data, json_path)
+                            console.print(f"[green]Progress saved to {json_path}[/green]")
+                            sys.exit(0)
+                        else:
+                            console.print("[red]Quitting without saving.[/red]")
+                            sys.exit(0)
                     console.print("[yellow]Resuming current function...[/yellow]")
 
     return data
 
 def display_summary(data):
     """
-    Displays a summary table of the collected data in the terminal.
+    Displays a summary table of the collected data in the terminal, followed by a gap analysis.
     """
     function_list = functions()
     table = Table(title="Cyber Defense Matrix Summary", show_lines=True, expand=True)
@@ -190,3 +217,43 @@ def display_summary(data):
         table.add_row(*row_cells)
 
     console.print(table)
+
+    # Gap analysis
+    full_count = partial_count = empty_count = 0
+    empty_cells = []
+    partial_cells = []
+
+    for asset, mappings in data.items():
+        for func in function_list:
+            cell = mappings.get(func, {})
+            filled = sum(1 for f in DATA_FIELDS if cell.get(f, "").strip())
+            total_fields = len(DATA_FIELDS)
+            if filled == total_fields:
+                full_count += 1
+            elif filled == 0:
+                empty_count += 1
+                empty_cells.append(f"{asset}/{func}")
+            else:
+                partial_count += 1
+                partial_cells.append(f"{asset}/{func} ({filled}/{total_fields} fields)")
+
+    total_cells = len(data) * len(function_list)
+    status_color = "green" if empty_count == 0 else ("yellow" if empty_count <= 5 else "red")
+
+    gap_lines = [
+        f"[{status_color}][bold]{full_count}/{total_cells} cells fully populated[/bold][/{status_color}]"
+        f"  •  [yellow]{partial_count} partial[/yellow]"
+        f"  •  [red]{empty_count} empty[/red]"
+    ]
+
+    if empty_cells:
+        gap_lines.append("\n[bold red]Empty cells (no data entered):[/bold red]")
+        for name in empty_cells:
+            gap_lines.append(f"  [red]✗[/red] {name}")
+
+    if partial_cells:
+        gap_lines.append("\n[bold yellow]Partial cells (some fields missing):[/bold yellow]")
+        for name in partial_cells:
+            gap_lines.append(f"  [yellow]△[/yellow] {name}")
+
+    console.print(Panel("\n".join(gap_lines), title="[bold]Gap Analysis[/bold]", border_style="blue"))

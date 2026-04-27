@@ -5,7 +5,7 @@ import argparse
 # Add src to path if needed for local runs
 sys.path.append(os.path.join(os.path.dirname(__file__), 'src'))
 
-from cdm_wizard.wizard import run_wizard, display_summary, load_from_json
+from cdm_wizard.wizard import run_wizard, display_summary, load_from_json, save_to_json
 from cdm_wizard.exporter import export_to_excel
 from rich.console import Console
 
@@ -25,6 +25,11 @@ def main(argv=None):
         default="cdm_output.xlsx",
         help="Output Excel file path (default: cdm_output.xlsx)",
     )
+    parser.add_argument(
+        "--export-json",
+        metavar="FILE",
+        help="Also export CDM data as JSON (useful for saving and resuming later)",
+    )
     args = parser.parse_args(argv)
 
     try:
@@ -38,6 +43,10 @@ def main(argv=None):
 
         export_to_excel(data, args.output)
         console.print(f"\n[bold green]Success![/bold green] Your Cyber Defense Matrix has been exported to [bold cyan]{args.output}[/bold cyan]")
+
+        if args.export_json:
+            save_to_json(data, args.export_json)
+            console.print(f"[bold green]JSON export:[/bold green] Data saved to [bold cyan]{args.export_json}[/bold cyan]")
         return 0
 
     except KeyboardInterrupt:

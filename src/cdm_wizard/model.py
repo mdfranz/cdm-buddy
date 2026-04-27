@@ -33,6 +33,39 @@ FUNCTION_COLORS = {
 }
 
 DATA_FIELDS = ("Tech", "People", "Process")
+
+TECH_EXAMPLES = {
+    ("Devices", "Govern"):      "e.g. CMDB policies, device standards documentation",
+    ("Devices", "Identify"):    "e.g. Qualys, Tenable, Rapid7, Nessus",
+    ("Devices", "Protect"):     "e.g. CrowdStrike Falcon, SentinelOne, Tanium, Microsoft Defender",
+    ("Devices", "Detect"):      "e.g. EDR telemetry, Sysmon, Microsoft Defender for Endpoint",
+    ("Devices", "Respond"):     "e.g. CrowdStrike RTR, Tanium, Carbon Black Live Response",
+    ("Devices", "Recover"):     "e.g. Veeam, Cohesity, OS reimaging pipeline",
+    ("Networks", "Govern"):     "e.g. Network segmentation policy, firewall rule change management",
+    ("Networks", "Identify"):   "e.g. Nmap, Shodan, Censys, network asset scanners",
+    ("Networks", "Protect"):    "e.g. Palo Alto NGFW, Cisco ASA, Zscaler, Cloudflare",
+    ("Networks", "Detect"):     "e.g. Zeek/Bro, Suricata, Darktrace, Cisco Stealthwatch",
+    ("Networks", "Respond"):    "e.g. Firewall ACL scripts, network isolation, Cisco ISE",
+    ("Networks", "Recover"):    "e.g. SD-WAN failover, BGP route restoration, ISP failover",
+    ("Applications", "Govern"):  "e.g. SDLC policies, AppSec program charter, risk acceptance process",
+    ("Applications", "Identify"): "e.g. Snyk, OWASP ZAP, Veracode, Semgrep, SBOM tools",
+    ("Applications", "Protect"): "e.g. WAF (Imperva, AWS WAF), Checkmarx, GitHub Advanced Security",
+    ("Applications", "Detect"):  "e.g. RASP tools, AWS GuardDuty, application log monitoring",
+    ("Applications", "Respond"): "e.g. Feature flags, hotfix pipeline, incident runbooks",
+    ("Applications", "Recover"): "e.g. Blue/green deployment, rollback pipeline, DR runbooks",
+    ("Data", "Govern"):         "e.g. Data classification policy, DLP policy, retention standards",
+    ("Data", "Identify"):       "e.g. AWS Macie, Varonis, BigID, data catalog tools",
+    ("Data", "Protect"):        "e.g. Varonis, Macie, Forcepoint DLP, encryption at rest",
+    ("Data", "Detect"):         "e.g. Varonis DatAlert, CASB (Netskope, MCAS), database activity monitoring",
+    ("Data", "Respond"):        "e.g. Data quarantine procedures, access revocation, legal hold",
+    ("Data", "Recover"):        "e.g. S3 versioning, database backups, Cohesity DataProtect",
+    ("Users", "Govern"):        "e.g. IAM policies, acceptable use policy, MFA requirements",
+    ("Users", "Identify"):      "e.g. SailPoint, Saviynt, AD/LDAP inventory, Okta Lifecycle Management",
+    ("Users", "Protect"):       "e.g. Okta, CyberArk, Duo, Microsoft Entra ID, BeyondTrust",
+    ("Users", "Detect"):        "e.g. Okta ThreatInsight, Microsoft Sentinel UEBA, Exabeam",
+    ("Users", "Respond"):       "e.g. Account disable scripts, CyberArk session termination, SOAR playbooks",
+    ("Users", "Recover"):       "e.g. Account restoration procedures, password reset workflows",
+}
 GOVERN_FUNCTIONS = ("Govern",)
 LEFT_OF_BOOM_FUNCTIONS = ("Identify", "Protect")
 RIGHT_OF_BOOM_FUNCTIONS = ("Detect", "Respond", "Recover")
