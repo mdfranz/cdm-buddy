@@ -3,5 +3,5 @@ refs/
 __pycache__/
 *.xlsx
 .pytest_cache/
-*.json
+/*.json
 /cdmbuddy

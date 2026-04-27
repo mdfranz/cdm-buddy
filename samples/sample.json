@@ -1,0 +1,60 @@
+{
+  "Devices": [
+    {
+      "Name": "Corporate Laptops",
+      "Cells": {
+        "Identify": { "Tech": "Tenable.io", "People": "VM Team", "Process": "Weekly" },
+        "Protect": { "Tech": "CrowdStrike", "People": "IT Ops", "Process": "Auto" },
+        "Detect": { "Tech": "CrowdStrike", "People": "SOC", "Process": "24/7" },
+        "Respond": { "Tech": "CrowdStrike RTR", "People": "IR Team", "Process": "Runbook" },
+        "Recover": { "Tech": "Intune Rebuild", "People": "IT Ops", "Process": "Standard Image" }
+      }
+    },
+    {
+      "Name": "Legacy Servers",
+      "Cells": {
+        "Identify": { "Tech": "Nmap", "People": "Admin", "Process": "Manual" },
+        "Protect": { "Tech": "❌", "People": "❌", "Process": "❌" },
+        "Detect": { "Tech": "Syslog", "People": "Admin", "Process": "Reactive" }
+      }
+    }
+  ],
+  "Networks": [
+    {
+      "Name": "Office WIFI",
+      "Cells": {
+        "Protect": { "Tech": "WPA3 Enterprise", "People": "NetEng", "Process": "Radius" },
+        "Detect": { "Tech": "IDS", "People": "SOC", "Process": "Alerting" }
+      }
+    }
+  ],
+  "Applications": [
+    {
+      "Name": "Customer Portal",
+      "Cells": {
+        "Govern": { "Tech": "SDLC Policy", "People": "AppSec", "Process": "Reviews" },
+        "Identify": { "Tech": "Snyk", "People": "Devs", "Process": "CI/CD" },
+        "Protect": { "Tech": "AWS WAF", "People": "CloudSec", "Process": "Automated" }
+      }
+    }
+  ],
+  "Data": [],
+  "Users": [
+    {
+      "Name": "All Employees",
+      "Cells": {
+        "Identify": { "Tech": "Okta", "People": "IAM", "Process": "JML" },
+        "Protect": { "Tech": "Okta MFA", "People": "Users", "Process": "Enforced" }
+      }
+    }
+  ],
+  "Services": [
+    {
+      "Name": "Microsoft 365",
+      "Cells": {
+        "Govern": { "Tech": "Compliance Center", "People": "Legal", "Process": "Retention" },
+        "Protect": { "Tech": "MDO", "People": "SecEng", "Process": "Standard" }
+      }
+    }
+  ]
+}
