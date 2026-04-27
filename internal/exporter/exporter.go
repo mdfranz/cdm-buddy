@@ -1,11 +1,56 @@
 package exporter
 
 import (
+	"encoding/csv"
 	"fmt"
+	"os"
 
 	"cdmbuddy/internal/model"
 	"github.com/xuri/excelize/v2"
 )
+
+func ExportToCSV(matrix model.Matrix, path string) error {
+	file, err := os.Create(path)
+	if err != nil {
+		return err
+	}
+	defer file.Close()
+
+	writer := csv.NewWriter(file)
+	defer writer.Flush()
+
+	// Write header
+	header := []string{"Asset Class", "Instance", "Function", "Technology", "People", "Process"}
+	if err := writer.Write(header); err != nil {
+		return err
+	}
+
+	// Write data
+	for _, asset := range model.AssetClasses {
+		instances := matrix[asset]
+		for _, instance := range instances {
+			for _, funcName := range model.Functions {
+				cell := instance.Cells[funcName]
+				// Only export cells that have at least one value
+				if cell.Tech != "" || cell.People != "" || cell.Process != "" {
+					row := []string{
+						asset,
+						instance.Name,
+						funcName,
+						cell.Tech,
+						cell.People,
+						cell.Process,
+					}
+					if err := writer.Write(row); err != nil {
+						return err
+					}
+				}
+			}
+		}
+	}
+
+	return nil
+}
 
 func ExportToExcel(matrix model.Matrix, path string) error {
 	f := excelize.NewFile()

@@ -35,6 +35,9 @@ func RunWizard(initial model.Matrix) (model.Matrix, error) {
 		}
 	}
 
+	var assetClassesToAdd []string
+	var editingInstance string // Track which instance we're editing (if any)
+
 	if !isResuming {
 		mission := huh.NewNote().
 			Title("The Mission: Map Your Defense").
@@ -62,8 +65,85 @@ func RunWizard(initial model.Matrix) (model.Matrix, error) {
 		if err := introForm.Run(); err != nil {
 			return nil, err
 		}
+		// Add all asset classes for new assessments
+		assetClassesToAdd = model.AssetClasses
 	} else {
 		fmt.Println(styleTitle.Render("\nResuming existing assessment..."))
+		DisplaySummary(matrix)
+		fmt.Println()
+
+		var resumeChoice string
+		resumeForm := huh.NewForm(huh.NewGroup(
+			huh.NewSelect[string]().
+				Title("What would you like to do?").
+				Options(
+					huh.NewOption("Add instances to a new asset class", "add"),
+					huh.NewOption("Re-enter a specific instance", "edit"),
+					huh.NewOption("Skip wizard and export", "export"),
+				).
+				Value(&resumeChoice),
+		))
+		if err := resumeForm.Run(); err != nil {
+			return nil, err
+		}
+
+		switch resumeChoice {
+		case "add":
+			var assetChoice string
+			assetOptions := make([]huh.Option[string], 0)
+			for _, asset := range model.AssetClasses {
+				assetOptions = append(assetOptions, huh.NewOption(asset, asset))
+			}
+			assetForm := huh.NewForm(huh.NewGroup(
+				huh.NewSelect[string]().
+					Title("Which asset class to add instances to?").
+					Options(assetOptions...).
+					Value(&assetChoice),
+			))
+			if err := assetForm.Run(); err != nil {
+				return nil, err
+			}
+			assetClassesToAdd = []string{assetChoice}
+
+		case "edit":
+			var selectedInstance string
+			instanceOptions := make([]huh.Option[string], 0)
+			for _, asset := range model.AssetClasses {
+				for _, inst := range matrix[asset] {
+					label := fmt.Sprintf("%s / %s", asset, inst.Name)
+					instanceOptions = append(instanceOptions, huh.NewOption(label, inst.Name))
+				}
+			}
+			if len(instanceOptions) == 0 {
+				fmt.Println("No instances to edit.")
+				return matrix, nil
+			}
+			editForm := huh.NewForm(huh.NewGroup(
+				huh.NewSelect[string]().
+					Title("Which instance to re-enter?").
+					Options(instanceOptions...).
+					Value(&selectedInstance),
+			))
+			if err := editForm.Run(); err != nil {
+				return nil, err
+			}
+			// Find the asset class for this instance
+			for _, asset := range model.AssetClasses {
+				for i, inst := range matrix[asset] {
+					if inst.Name == selectedInstance {
+						// Clear the instance and re-enter it
+						matrix[asset][i] = model.AssetInstance{Name: selectedInstance, Cells: make(map[string]model.Cell)}
+						assetClassesToAdd = []string{asset}
+						editingInstance = selectedInstance
+						break
+					}
+				}
+			}
+
+		case "export":
+			// Skip wizard, go straight to export
+			return matrix, nil
+		}
 	}
 
 	// 2. Iterative Wizard
@@ -79,37 +159,87 @@ func RunWizard(initial model.Matrix) (model.Matrix, error) {
 		}
 	}
 
-	for _, asset := range model.AssetClasses {
+	for _, asset := range assetClassesToAdd {
 		for {
 			var assetName string
 			icon := model.AssetIcons[asset]
 			assetHeader := styleHeader.Render(fmt.Sprintf("%s %s", icon, strings.ToUpper(asset)))
 			assetDesc := styleDim.Render(model.AssetDescriptions[asset])
 
-			nameForm := huh.NewForm(huh.NewGroup(
-				huh.NewNote().Description(fmt.Sprintf("%s\n%s", assetHeader, assetDesc)),
-				huh.NewInput().
-					Title(fmt.Sprintf("Add a specific %s instance?", asset)).
-					Placeholder("e.g. Workstations, Servers (leave blank to skip/finish)").
-					Value(&assetName),
-			))
-			if err := nameForm.Run(); err != nil {
-				if err == huh.ErrUserAborted {
-					if quit := handleAbort(matrix); quit {
-						return matrix, nil
-					}
-					continue
-				}
-				return nil, err
+			// When editing, pre-fill the instance name
+			if editingInstance != "" {
+				assetName = editingInstance
 			}
 
-			if assetName == "" {
-				break
+			// Skip the name prompt if we're editing
+			if editingInstance == "" {
+				nameForm := huh.NewForm(huh.NewGroup(
+					huh.NewNote().Description(fmt.Sprintf("%s\n%s", assetHeader, assetDesc)),
+					huh.NewInput().
+						Title(fmt.Sprintf("Add a specific %s instance?", asset)).
+						Placeholder("e.g. Workstations, Servers (leave blank to skip/finish)").
+						Value(&assetName),
+				))
+				if err := nameForm.Run(); err != nil {
+					if err == huh.ErrUserAborted {
+						if quit := handleAbort(matrix); quit {
+							return matrix, nil
+						}
+						continue
+					}
+					return nil, err
+				}
+
+				assetName = strings.TrimSpace(assetName)
+				if assetName == "" {
+					break
+				}
+
+				if model.HasInstance(matrix, asset, assetName) {
+					fmt.Printf("%s\n", styleRed.Render(fmt.Sprintf("❌ Instance '%s' already exists in %s. Choose a different name.", assetName, asset)))
+					continue
+				}
+			} else {
+				// When editing, just show a note and proceed
+				fmt.Println(styleHeader.Render(fmt.Sprintf("Editing: %s / %s", asset, assetName)))
 			}
 
 			instance := model.AssetInstance{
 				Name:  assetName,
 				Cells: make(map[string]model.Cell),
+			}
+
+			// Offer to copy from existing instances in the same asset class (skip if editing)
+			if editingInstance == "" {
+				existingInstances := matrix[asset]
+				if len(existingInstances) > 0 {
+					var copyChoice string
+					options := []huh.Option[string]{
+						huh.NewOption("Start fresh", "fresh"),
+					}
+					for _, existing := range existingInstances {
+						options = append(options, huh.NewOption("Copy from "+existing.Name, existing.Name))
+					}
+
+					copyForm := huh.NewForm(huh.NewGroup(
+						huh.NewSelect[string]().
+							Title(fmt.Sprintf("Prefill from existing %s instance?", asset)).
+							Options(options...).
+							Value(&copyChoice),
+					))
+					if err := copyForm.Run(); err == nil && copyChoice != "fresh" {
+						// Find the instance to copy from
+						for _, existing := range existingInstances {
+							if existing.Name == copyChoice {
+								// Deep copy the cells
+								for funcName, cell := range existing.Cells {
+									instance.Cells[funcName] = cell
+								}
+								break
+							}
+						}
+					}
+				}
 			}
 
 			for funcIdx, funcName := range orderedFunctions {
@@ -154,45 +284,34 @@ func RunWizard(initial model.Matrix) (model.Matrix, error) {
 					tip = styleDim.Render("Map based on the asset being investigated or contained.")
 				}
 
-				var status string = "details"
-				statusGroup := huh.NewGroup(
+				var markAsNone bool
+				var cell model.Cell
+				noneHint := styleDim.Render("(type 'none' for ❌)")
+
+				confirmGroup := huh.NewGroup(
 					huh.NewNote().Description(fmt.Sprintf("%s\n\n%s %s (%d/%d)\n%s\n%s %s", instanceHeader, funcHeader, boomTag, funcIdx+1, len(orderedFunctions), funcDesc, tipPrefix, tip)),
-					huh.NewSelect[string]().
-						Title(fmt.Sprintf("Configure %s?", funcName)).
-						Options(
-							huh.NewOption("Enter details", "details"),
-							huh.NewOption("Mark all as 'None' (❌)", "none"),
-							huh.NewOption("Skip this function", "skip"),
-						).
-						Value(&status),
+					huh.NewConfirm().
+						Title("Mark all as ❌ (no coverage)?").
+						Value(&markAsNone),
 				)
 
-				if err := huh.NewForm(statusGroup).Run(); err != nil {
+				if err := huh.NewForm(confirmGroup).Run(); err != nil {
 					if err == huh.ErrUserAborted {
 						if quit := handleAbort(matrix); quit {
 							return matrix, nil
 						}
-						// If they didn't quit, we re-prompt for the same status group
-						// A bit tricky in this nested loop structure, but standard break/continue won't work perfectly.
-						// Simplest is to just allow them to 'skip' the cell if they cancel the cell-level abort.
 						continue
 					}
 					return nil, err
 				}
 
-				if status == "none" {
+				if markAsNone {
 					instance.Cells[funcName] = model.Cell{Tech: "❌", People: "❌", Process: "❌"}
 					continue
 				}
-				if status == "skip" {
-					instance.Cells[funcName] = model.Cell{}
-					continue
-				}
 
-				cell := model.Cell{}
-				noneHint := styleDim.Render("(type 'none' for ❌)")
-
-				group := huh.NewGroup(
+				inputGroup := huh.NewGroup(
+					huh.NewNote().Description(fmt.Sprintf("%s\n\n%s %s (%d/%d)\n%s\n%s %s", instanceHeader, funcHeader, boomTag, funcIdx+1, len(orderedFunctions), funcDesc, tipPrefix, tip)),
 					huh.NewInput().
 						Title("Technology/Vendor").
 						Placeholder(techInstruction).
@@ -211,8 +330,8 @@ func RunWizard(initial model.Matrix) (model.Matrix, error) {
 					huh.NewNote().Description(noneHint),
 				)
 
-				form := huh.NewForm(group)
-				if err := form.Run(); err != nil {
+				inputForm := huh.NewForm(inputGroup)
+				if err := inputForm.Run(); err != nil {
 					if err == huh.ErrUserAborted {
 						if quit := handleAbort(matrix); quit {
 							return matrix, nil
@@ -222,14 +341,29 @@ func RunWizard(initial model.Matrix) (model.Matrix, error) {
 					return nil, err
 				}
 
-				// Handle "none" -> ❌
+				// Handle "none" -> ❌, and skip if all empty
 				cell.Tech = formatValue(cell.Tech)
 				cell.People = formatValue(cell.People)
 				cell.Process = formatValue(cell.Process)
 
 				instance.Cells[funcName] = cell
 			}
-			matrix[asset] = append(matrix[asset], instance)
+			// Replace the instance if it already exists (for editing), otherwise append
+			found := false
+			for i, existing := range matrix[asset] {
+				if existing.Name == instance.Name {
+					matrix[asset][i] = instance
+					found = true
+					break
+				}
+			}
+			if !found {
+				matrix[asset] = append(matrix[asset], instance)
+			}
+			// After processing the first instance when editing, clear the flag
+			if editingInstance != "" {
+				editingInstance = ""
+			}
 		}
 	}
 
@@ -276,10 +410,11 @@ func handleAbort(matrix model.Matrix) bool {
 }
 
 func formatValue(s string) string {
-	if strings.ToLower(strings.TrimSpace(s)) == "none" {
+	trimmed := strings.TrimSpace(s)
+	if strings.ToLower(trimmed) == "none" {
 		return "❌"
 	}
-	return s
+	return strings.TrimSpace(s)
 }
 
 func contains(slice []string, val string) bool {
@@ -292,30 +427,138 @@ func contains(slice []string, val string) bool {
 }
 
 func DisplaySummary(matrix model.Matrix) {
-	fmt.Println("\nCyber Defense Matrix Summary")
-	fmt.Println(strings.Repeat("-", 80))
+	titleStyle := lipgloss.NewStyle().Bold(true).Foreground(lipgloss.Color("12")).MarginBottom(1)
+	fmt.Println(titleStyle.Render("\n 📊 Cyber Defense Matrix Coverage"))
 
-	totalInstances := 0
-	populatedCells := 0
+	totalCells := 0
+	filledCells := 0
+	noneCells := 0
 
+	// Collect all instances
+	var allInstances []struct {
+		asset    string
+		instance string
+	}
 	for _, asset := range model.AssetClasses {
-		instances := matrix[asset]
-		if len(instances) == 0 {
-			continue
-		}
-		fmt.Printf("Asset Class: %s\n", asset)
-		for _, instance := range instances {
-			totalInstances++
-			fmt.Printf("  Instance: %s\n", instance.Name)
-			for _, funcName := range model.Functions {
-				cell := instance.Cells[funcName]
-				if cell.Tech != "" || cell.People != "" || cell.Process != "" {
-					populatedCells++
-					fmt.Printf("    [%s] Tech: %s, People: %s, Process: %s\n", funcName, cell.Tech, cell.People, cell.Process)
-				}
-			}
+		for _, inst := range matrix[asset] {
+			allInstances = append(allInstances, struct {
+				asset    string
+				instance string
+			}{asset, inst.Name})
 		}
 	}
 
-	fmt.Printf("\nSummary: %d asset instances defined. %d total populated cells.\n", totalInstances, populatedCells)
+	if len(allInstances) == 0 {
+		emptyStyle := lipgloss.NewStyle().Italic(true).Faint(true)
+		fmt.Println(emptyStyle.Render("  (no instances added yet)"))
+		return
+	}
+
+	// Build grid with box-drawing characters
+	filledStyle := lipgloss.NewStyle().Foreground(lipgloss.Color("10")).Bold(true)   // Green ✓
+	noneStyle := lipgloss.NewStyle().Foreground(lipgloss.Color("9")).Bold(true)      // Red ❌
+	emptyStyle := lipgloss.NewStyle().Foreground(lipgloss.Color("8")).Faint(true)    // Gray -
+
+	colWidth := 13
+	instanceWidth := 32
+
+	// Top border
+	fmt.Print("  ┌" + strings.Repeat("─", instanceWidth-1))
+	for range model.Functions {
+		fmt.Print("┬" + strings.Repeat("─", colWidth-1))
+	}
+	fmt.Println("┐")
+
+	// Header row
+	fmt.Print("  │ " + padRight("Instance", instanceWidth-2))
+	for _, funcName := range model.Functions {
+		fmt.Print("│" + padCenter(funcName, colWidth-1))
+	}
+	fmt.Println("│")
+
+	// Header separator
+	fmt.Print("  ├" + strings.Repeat("─", instanceWidth-1))
+	for range model.Functions {
+		fmt.Print("┼" + strings.Repeat("─", colWidth-1))
+	}
+	fmt.Println("┤")
+
+	// Data rows
+	for i, item := range allInstances {
+		fmt.Print("  │ " + padRight(item.instance, instanceWidth-2))
+		instances := matrix[item.asset]
+		var currentInst model.AssetInstance
+		for _, inst := range instances {
+			if inst.Name == item.instance {
+				currentInst = inst
+				break
+			}
+		}
+
+		for _, funcName := range model.Functions {
+			cell := currentInst.Cells[funcName]
+			totalCells++
+
+			var cellStatus, styledCell string
+			if cell.Tech == "" && cell.People == "" && cell.Process == "" {
+				cellStatus = "─"
+				styledCell = emptyStyle.Render(cellStatus)
+			} else if cell.Tech == "❌" && cell.People == "❌" && cell.Process == "❌" {
+				cellStatus = "❌"
+				styledCell = noneStyle.Render(cellStatus)
+				noneCells++
+			} else {
+				cellStatus = "✓"
+				styledCell = filledStyle.Render(cellStatus)
+				filledCells++
+			}
+			fmt.Print("│" + padCenter(styledCell, colWidth-1))
+		}
+		fmt.Println("│")
+
+		// Add separator between rows (not after last)
+		if i < len(allInstances)-1 {
+			fmt.Print("  ├" + strings.Repeat("─", instanceWidth-1))
+			for range model.Functions {
+				fmt.Print("┼" + strings.Repeat("─", colWidth-1))
+			}
+			fmt.Println("┤")
+		}
+	}
+
+	// Bottom border
+	fmt.Print("  └" + strings.Repeat("─", instanceWidth-1))
+	for range model.Functions {
+		fmt.Print("┴" + strings.Repeat("─", colWidth-1))
+	}
+	fmt.Println("┘")
+
+	// Coverage summary
+	coverage := 0
+	if totalCells > 0 {
+		coverage = (filledCells * 100) / totalCells
+	}
+
+	summaryStyle := lipgloss.NewStyle().
+		MarginTop(1).
+		Padding(0, 2).
+		Border(lipgloss.RoundedBorder()).
+		BorderForeground(lipgloss.Color("8"))
+
+	summaryText := fmt.Sprintf(
+		"  %s  %d/%d cells filled  •  %.0f%% coverage  •  %d marked no coverage",
+		styleIcon.Render("📈"),
+		filledCells, totalCells,
+		float64(coverage),
+		noneCells,
+	)
+	fmt.Println(summaryStyle.Render(summaryText))
+}
+
+func padRight(s string, width int) string {
+	return lipgloss.NewStyle().Width(width).Align(lipgloss.Left).Render(s)
+}
+
+func padCenter(s string, width int) string {
+	return lipgloss.NewStyle().Width(width).Align(lipgloss.Center).Render(s)
 }

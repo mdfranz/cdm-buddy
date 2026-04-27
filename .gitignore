@@ -1,4 +1,5 @@
 .venv/
+refs/
 __pycache__/
 *.xlsx
 .pytest_cache/

@@ -122,3 +122,13 @@ func SaveToJson(matrix Matrix, path string) error {
 	}
 	return os.WriteFile(path, data, 0644)
 }
+
+func HasInstance(matrix Matrix, assetClass, name string) bool {
+	instances := matrix[assetClass]
+	for _, inst := range instances {
+		if inst.Name == name {
+			return true
+		}
+	}
+	return false
+}
