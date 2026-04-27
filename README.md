@@ -11,9 +11,11 @@ An interactive CLI tool to map your security portfolio to Sounil Yu's Cyber Defe
 
 - **Guided Mapping**: Interactive prompts with definitions for Asset Classes and NIST Functions.
 - **CSF 2.0 Coverage**: Includes the `Govern` function alongside Identify, Protect, Detect, Respond, and Recover.
+- **Six Asset Classes**: Coverage for Devices, Networks, Applications, Data, Users, and the **newly added Services (SaaS)** class.
 - **CDM Principles**: Built-in support for "Left/Right of Boom" and "Applications vs. Devices" logic.
 - **Dependency Mapping**: Capture Technology, People, and Process for every control.
-- **Excel Export**: Generates a styled report with visual cues for strategic analysis.
+- **Multi-Format Export**: Generates styled **Excel** reports, **CSV** raw data, and **JSON** for session persistence.
+- **Resume & Edit**: Load existing JSON data to continue an assessment or edit previous entries.
 
 ## Requirements
 
@@ -34,6 +36,22 @@ Or using the Go CLI:
 
 ```bash
 go run ./cmd/cdmbuddy
+```
+
+### CLI Flags
+
+| Flag | Shorthand | Description | Default |
+|------|-----------|-------------|---------|
+| `--input` | `-i` | Load CDM data from a JSON file to resume | |
+| `--output` | `-o` | Output Excel file path | `cdm_output.xlsx` |
+| `--csv` | `-c` | Output CSV file path | `cdm_output.csv` |
+| `--export-json`| | Also export CDM data as JSON | `cdm_data.json` |
+| `--name` | `-n` | Assessment name (used for filenames) | |
+| `--report` | `-r` | Generate report and exit (requires `-i`) | `false` |
+
+### Example: Resume an Assessment
+```bash
+go run ./cmd/cdmbuddy -i my_previous_run.json
 ```
 
 ![sample-run](wizard.png)
