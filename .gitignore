@@ -1,6 +1,7 @@
 .venv/
+refs/
 __pycache__/
 *.xlsx
 .pytest_cache/
-refs/
 *.json
+/cdmbuddy

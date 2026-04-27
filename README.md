@@ -17,17 +17,23 @@ An interactive CLI tool to map your security portfolio to Sounil Yu's Cyber Defe
 
 ## Requirements
 
-- [uv](https://github.com/astral-sh/uv) (recommended)
-- Python 3.14+
+- [Go](https://go.dev/) 1.26.1+
+- [Make](https://www.gnu.org/software/make/) (optional, for using the Makefile)
 
 ## Usage
 
 ### Run the Wizard
 
-The easiest way to run the wizard is using `uv`:
+The easiest way to run the wizard is using `make`:
 
 ```bash
-uv run main.py
+make run
+```
+
+Or using the Go CLI:
+
+```bash
+go run ./cmd/cdmbuddy
 ```
 
 ![sample-run](wizard.png)
@@ -38,12 +44,18 @@ uv run main.py
 To verify the exporter and data structure:
 
 ```bash
-uv run -m unittest discover -s tests
+make test
+```
+
+Or:
+
+```bash
+go test -v ./...
 ```
 
 ## Source Code
 
-See [src/README.md](src/README.md) for details on the internal package structure and CDM alignment.
+See [GUIDE.md](GUIDE.md) and [WORKFLOW.md](WORKFLOW.md) for details on the project structure and CDM alignment.
 
 ## Credits & Acknowledgments
 
