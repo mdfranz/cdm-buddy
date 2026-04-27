@@ -63,20 +63,20 @@ func ExportToExcel(matrix model.Matrix, path string) error {
 	})
 
 	// 1. Add Boom Headers
-	f.SetCellValue(sheetName, "B1", "GOVERN (Cross-Cutting)")
-	f.SetCellStyle(sheetName, "B1", "B1", governBoomStyle)
+	f.SetCellValue(sheetName, "C1", "GOVERN (Cross-Cutting)")
+	f.SetCellStyle(sheetName, "C1", "C1", governBoomStyle)
 
-	f.MergeCell(sheetName, "C1", "D1")
-	f.SetCellValue(sheetName, "C1", "LEFT OF BOOM (Pre-Event)")
-	f.SetCellStyle(sheetName, "C1", "D1", leftBoomStyle)
+	f.MergeCell(sheetName, "D1", "E1")
+	f.SetCellValue(sheetName, "D1", "LEFT OF BOOM (Pre-Event)")
+	f.SetCellStyle(sheetName, "D1", "E1", leftBoomStyle)
 
-	f.MergeCell(sheetName, "E1", "G1")
-	f.SetCellValue(sheetName, "E1", "RIGHT OF BOOM (Post-Event)")
-	f.SetCellStyle(sheetName, "E1", "G1", rightBoomStyle)
+	f.MergeCell(sheetName, "F1", "H1")
+	f.SetCellValue(sheetName, "F1", "RIGHT OF BOOM (Post-Event)")
+	f.SetCellStyle(sheetName, "F1", "H1", rightBoomStyle)
 
 	// 2. Add Function Headers
 	for i, funcName := range model.Functions {
-		col, _ := excelize.ColumnNumberToName(i + 2)
+		col, _ := excelize.ColumnNumberToName(i + 3) // Start from C (3)
 		cell := col + "2"
 		f.SetCellValue(sheetName, cell, funcName)
 		
@@ -95,46 +95,69 @@ func ExportToExcel(matrix model.Matrix, path string) error {
 		f.SetCellStyle(sheetName, cell, cell, style)
 	}
 
+	// Add "Asset Instance" header
+	f.SetCellValue(sheetName, "B2", "Asset Instance")
+	f.SetCellStyle(sheetName, "B2", "B2", headerStyle)
+
 	// 3. Add Asset Headers and Data
-	for r, asset := range model.AssetClasses {
-		rowIdx := r + 3
-		cellName := fmt.Sprintf("A%d", rowIdx)
-		f.SetCellValue(sheetName, cellName, asset)
-		f.SetCellStyle(sheetName, cellName, cellName, headerStyle)
+	currentRow := 3
+	for _, asset := range model.AssetClasses {
+		instances := matrix[asset]
+		if len(instances) == 0 {
+			continue
+		}
 
-		for c, funcName := range model.Functions {
-			col, _ := excelize.ColumnNumberToName(c + 2)
-			cell := fmt.Sprintf("%s%d", col, rowIdx)
-			
-			cellData := matrix[asset][funcName]
-			value := fmt.Sprintf("TECH: %s\nPEOPLE: %s\nPROCESS: %s", cellData.Tech, cellData.People, cellData.Process)
-			f.SetCellValue(sheetName, cell, value)
+		startRow := currentRow
+		for _, instance := range instances {
+			f.SetCellValue(sheetName, fmt.Sprintf("B%d", currentRow), instance.Name)
+			f.SetCellStyle(sheetName, fmt.Sprintf("B%d", currentRow), fmt.Sprintf("B%d", currentRow), headerStyle)
 
-			color := model.FunctionColors[funcName]
-			
-			// Check if we need thick right border for "Protect" (column D)
-			var borders []excelize.Border
-			borders = append(borders, excelize.Border{Type: "left", Color: "000000", Style: 1})
-			borders = append(borders, excelize.Border{Type: "top", Color: "000000", Style: 1})
-			borders = append(borders, excelize.Border{Type: "bottom", Color: "000000", Style: 1})
-			
-			if funcName == "Protect" {
-				borders = append(borders, excelize.Border{Type: "right", Color: "000000", Style: 5}) // 5 is thick
-			} else {
-				borders = append(borders, excelize.Border{Type: "right", Color: "000000", Style: 1})
+			for c, funcName := range model.Functions {
+				col, _ := excelize.ColumnNumberToName(c + 3)
+				cell := fmt.Sprintf("%s%d", col, currentRow)
+				
+				cellData := instance.Cells[funcName]
+				value := fmt.Sprintf("TECH: %s\nPEOPLE: %s\nPROCESS: %s", cellData.Tech, cellData.People, cellData.Process)
+				f.SetCellValue(sheetName, cell, value)
+
+				color := model.FunctionColors[funcName]
+				
+				// Check if we need thick right border for "Protect" (column E now, index 2 in Functions)
+				var borders []excelize.Border
+				borders = append(borders, excelize.Border{Type: "left", Color: "000000", Style: 1})
+				borders = append(borders, excelize.Border{Type: "top", Color: "000000", Style: 1})
+				borders = append(borders, excelize.Border{Type: "bottom", Color: "000000", Style: 1})
+				
+				if funcName == "Protect" {
+					borders = append(borders, excelize.Border{Type: "right", Color: "000000", Style: 5}) // 5 is thick
+				} else {
+					borders = append(borders, excelize.Border{Type: "right", Color: "000000", Style: 1})
+				}
+
+				style, _ := f.NewStyle(&excelize.Style{
+					Alignment: &excelize.Alignment{Horizontal: "left", Vertical: "top", WrapText: true},
+					Fill:      excelize.Fill{Type: "pattern", Color: []string{color}, Pattern: 1},
+					Border:    borders,
+				})
+				f.SetCellStyle(sheetName, cell, cell, style)
 			}
-
-			style, _ := f.NewStyle(&excelize.Style{
-				Alignment: &excelize.Alignment{Horizontal: "left", Vertical: "top", WrapText: true},
-				Fill:      excelize.Fill{Type: "pattern", Color: []string{color}, Pattern: 1},
-				Border:    borders,
-			})
-			f.SetCellStyle(sheetName, cell, cell, style)
+			currentRow++
+		}
+		
+		endRow := currentRow - 1
+		cellA := fmt.Sprintf("A%d", startRow)
+		if startRow == endRow {
+			f.SetCellValue(sheetName, cellA, asset)
+			f.SetCellStyle(sheetName, cellA, cellA, headerStyle)
+		} else {
+			f.MergeCell(sheetName, cellA, fmt.Sprintf("A%d", endRow))
+			f.SetCellValue(sheetName, cellA, asset)
+			f.SetCellStyle(sheetName, cellA, fmt.Sprintf("A%d", endRow), headerStyle)
 		}
 	}
 
 	// 4. Thick border for Boom Boundary
-	// Protect is column D (4). We apply it to rows 1 and 2 specifically.
+	// Protect is column E (5). We apply it to rows 1 and 2 specifically.
 	leftBoomStyleThick, _ := f.NewStyle(&excelize.Style{
 		Fill:      excelize.Fill{Type: "pattern", Color: []string{"4F81BD"}, Pattern: 1},
 		Font:      boomStyleBase.Font,
@@ -146,9 +169,9 @@ func ExportToExcel(matrix model.Matrix, path string) error {
 			{Type: "right", Color: "000000", Style: 5},
 		},
 	})
-	f.SetCellStyle(sheetName, "C1", "D1", leftBoomStyleThick)
+	f.SetCellStyle(sheetName, "D1", "E1", leftBoomStyleThick)
 
-	// Update Protect function header (D2)
+	// Update Protect function header (E2)
 	protectColor := model.FunctionColors["Protect"]
 	protectHeaderStyle, _ := f.NewStyle(&excelize.Style{
 		Font:      &excelize.Font{Bold: true, Size: 12},
@@ -161,12 +184,12 @@ func ExportToExcel(matrix model.Matrix, path string) error {
 			{Type: "right", Color: "000000", Style: 5},
 		},
 	})
-	f.SetCellStyle(sheetName, "D2", "D2", protectHeaderStyle)
+	f.SetCellStyle(sheetName, "E2", "E2", protectHeaderStyle)
 
 	// 5. Add Dependency Legend
-	legendRow := len(model.AssetClasses) + 4
+	legendRow := currentRow + 1
 	legendCell := fmt.Sprintf("A%d", legendRow)
-	lastCol, _ := excelize.ColumnNumberToName(len(model.Functions) + 1)
+	lastCol, _ := excelize.ColumnNumberToName(len(model.Functions) + 2)
 	lastCell := fmt.Sprintf("%s%d", lastCol, legendRow)
 	
 	f.MergeCell(sheetName, legendCell, lastCell)
@@ -179,8 +202,8 @@ func ExportToExcel(matrix model.Matrix, path string) error {
 	f.SetCellStyle(sheetName, legendCell, legendCell, legendStyle)
 
 	// Auto-adjust column widths (approximated)
-	f.SetColWidth(sheetName, "A", "A", 15)
-	f.SetColWidth(sheetName, "B", "G", 28)
+	f.SetColWidth(sheetName, "A", "B", 20)
+	f.SetColWidth(sheetName, "C", "H", 28)
 
 	return f.SaveAs(path)
 }

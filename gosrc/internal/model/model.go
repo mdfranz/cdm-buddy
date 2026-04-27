@@ -2,7 +2,6 @@ package model
 
 import (
 	"encoding/json"
-	"fmt"
 	"os"
 )
 
@@ -12,6 +11,7 @@ var AssetIcons = map[string]string{
 	"Applications": "📦",
 	"Data":         "💾",
 	"Users":        "👥",
+	"Services":     "☁️",
 }
 
 var AssetDescriptions = map[string]string{
@@ -20,6 +20,7 @@ var AssetDescriptions = map[string]string{
 	"Applications": "ONLY in-house built applications or software where you build/maintain the source code.",
 	"Data":         "Information at rest, in motion, or in use (Databases, S3 buckets, files).",
 	"Users":        "The people using the resources and their associated identities.",
+	"Services":     "Third-party SaaS applications and cloud-delivered services (e.g., Salesforce, ServiceNow, Atlassian).",
 }
 
 var FunctionDescriptions = map[string]string{
@@ -73,7 +74,7 @@ var TechExamples = map[string]string{
 	"Users-Recover":       "e.g. Account restoration procedures, password reset workflows",
 }
 
-var AssetClasses = []string{"Devices", "Networks", "Applications", "Data", "Users"}
+var AssetClasses = []string{"Devices", "Networks", "Applications", "Data", "Users", "Services"}
 var Functions = []string{"Govern", "Identify", "Protect", "Detect", "Respond", "Recover"}
 var GovernFunctions = []string{"Govern"}
 var LeftOfBoomFunctions = []string{"Identify", "Protect"}
@@ -85,15 +86,17 @@ type Cell struct {
 	Process string `json:"Process"`
 }
 
-type Matrix map[string]map[string]Cell
+type AssetInstance struct {
+	Name  string          `json:"Name"`
+	Cells map[string]Cell `json:"Cells"`
+}
+
+type Matrix map[string][]AssetInstance
 
 func EmptyMatrix() Matrix {
 	m := make(Matrix)
 	for _, asset := range AssetClasses {
-		m[asset] = make(map[string]Cell)
-		for _, funcName := range Functions {
-			m[asset][funcName] = Cell{}
-		}
+		m[asset] = []AssetInstance{}
 	}
 	return m
 }
@@ -104,24 +107,9 @@ func LoadFromJson(path string) (Matrix, error) {
 		return nil, err
 	}
 
-	var raw map[string]map[string]Cell
-	if err := json.Unmarshal(data, &raw); err != nil {
-		return nil, err
-	}
-
 	matrix := EmptyMatrix()
-	for asset, assetData := range raw {
-		if _, ok := matrix[asset]; !ok {
-			fmt.Printf("Warning: Ignoring unknown asset key: %s\n", asset)
-			continue
-		}
-		for funcName, cell := range assetData {
-			if _, ok := matrix[asset][funcName]; !ok {
-				fmt.Printf("Warning: %s: ignoring unknown function key: %s\n", asset, funcName)
-				continue
-			}
-			matrix[asset][funcName] = cell
-		}
+	if err := json.Unmarshal(data, &matrix); err != nil {
+		return nil, err
 	}
 
 	return matrix, nil
