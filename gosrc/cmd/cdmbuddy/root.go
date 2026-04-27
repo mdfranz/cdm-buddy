@@ -1,8 +1,11 @@
 package main
 
 import (
+	"bufio"
 	"fmt"
 	"os"
+	"strings"
+	"time"
 
 	"cdmbuddy/internal/exporter"
 	"cdmbuddy/internal/model"
@@ -14,6 +17,7 @@ var (
 	inputPath  string
 	outputPath string
 	jsonPath   string
+	assessName string
 )
 
 var rootCmd = &cobra.Command{
@@ -31,12 +35,32 @@ var rootCmd = &cobra.Command{
 				fmt.Printf("Error loading JSON: %v\n", err)
 				os.Exit(1)
 			}
-		} else {
-			matrix, err = wizard.RunWizard()
-			if err != nil {
-				fmt.Printf("Error running wizard: %v\n", err)
-				os.Exit(1)
+		}
+
+		// Always run the wizard to allow adding more data/reviewing
+		if inputPath == "" {
+			// If name not provided via flag, prompt for it
+			if assessName == "" {
+				fmt.Print("Enter assessment name: ")
+				reader := bufio.NewReader(os.Stdin)
+				input, _ := reader.ReadString('\n')
+				assessName = strings.TrimSpace(input)
+				if assessName == "" {
+					assessName = fmt.Sprintf("CDM_%s", time.Now().Format("060102150405"))
+				}
 			}
+			assessName = strings.ReplaceAll(assessName, " ", "_")
+
+			// Update jsonPath if it's still the default
+			if jsonPath == "cdm_data.json" {
+				jsonPath = fmt.Sprintf("%s_cdm.json", assessName)
+			}
+		}
+
+		matrix, err = wizard.RunWizard(matrix)
+		if err != nil {
+			fmt.Printf("Error running wizard: %v\n", err)
+			os.Exit(1)
 		}
 
 		wizard.DisplaySummary(matrix)
@@ -69,5 +93,6 @@ func Execute() {
 func init() {
 	rootCmd.Flags().StringVarP(&inputPath, "input", "i", "", "Load CDM data from a JSON file instead of running the interactive wizard")
 	rootCmd.Flags().StringVarP(&outputPath, "output", "o", "cdm_output.xlsx", "Output Excel file path")
-	rootCmd.Flags().StringVar(&jsonPath, "export-json", "", "Also export CDM data as JSON (useful for saving and resuming later)")
+	rootCmd.Flags().StringVar(&jsonPath, "export-json", "cdm_data.json", "Also export CDM data as JSON (useful for saving and resuming later)")
+	rootCmd.Flags().StringVarP(&assessName, "name", "n", "", "Assessment name (used for filename)")
 }

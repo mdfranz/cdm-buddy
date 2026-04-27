@@ -74,7 +74,7 @@ var TechExamples = map[string]string{
 	"Users-Recover":       "e.g. Account restoration procedures, password reset workflows",
 }
 
-var AssetClasses = []string{"Devices", "Networks", "Applications", "Data", "Users", "Services"}
+var AssetClasses = []string{"Services", "Devices", "Networks", "Applications", "Data", "Users"}
 var Functions = []string{"Govern", "Identify", "Protect", "Detect", "Respond", "Recover"}
 var GovernFunctions = []string{"Govern"}
 var LeftOfBoomFunctions = []string{"Identify", "Protect"}
