@@ -21,6 +21,7 @@ clean:
 	$(GOCLEAN)
 	rm -f $(BINARY_NAME)
 	rm -f $(BINARY_UNIX)
+	rm -f *.csv *.json *.xlsx
 
 run:
 	$(GOCMD) run $(CMD_DIR)

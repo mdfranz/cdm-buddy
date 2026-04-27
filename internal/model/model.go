@@ -15,7 +15,7 @@ var AssetIcons = map[string]string{
 }
 
 var AssetDescriptions = map[string]string{
-	"Devices":      "Workstations, servers, OS, firmware, and commodity software (e.g., MS Office, Browsers).",
+	"Devices":      "Workstations, servers, OS, firmware, and commodity software (e.g., MS Office, Browsers, Linux).",
 	"Networks":     "Communication channels, protocols (DNS, BGP), and paths (VPCs, VPNs). Not the physical hardware.",
 	"Applications": "ONLY in-house built applications or software where you build/maintain the source code.",
 	"Data":         "Information at rest, in motion, or in use (Databases, S3 buckets, files).",
@@ -24,12 +24,12 @@ var AssetDescriptions = map[string]string{
 }
 
 var FunctionDescriptions = map[string]string{
-	"Govern":   "The 'Operating System' of the matrix. Defines strategy, policy, risk appetite, and oversight that guide all other functions.",
-	"Identify": "Inventory, classification, and vulnerability discovery.",
-	"Protect":  "Safeguards to ensure delivery of services; patching and access controls.",
-	"Detect":   "Identifying the occurrence of a cybersecurity event or exploitation.",
-	"Respond":  "Activities to contain the impact of a detected event.",
-	"Recover":  "Resilience and restoration of capabilities impaired by an event.",
+	"Govern":   "The 'Operating System' of the matrix. Binds all functions through strategy, policy, and oversight to ensure alignment with organizational goals.",
+	"Identify": "Foundational inventory and vulnerability discovery. High Technology dependency—you must know what you have before you can protect it.",
+	"Protect":  "Proactive safeguards like patching and access controls. Technology-heavy focus on hardening assets and limiting the impact of threats.",
+	"Detect":   "Real-time identification of security events. The transition from proactive to reactive, requiring a balance of Technology and People.",
+	"Respond":  "Containment and mitigation once an event is detected. High People dependency; focused on stopping the 'bleeding' and coordination.",
+	"Recover":  "Resilience and restoration of services. People-centric focus on returning to normal operations and learning from the incident.",
 }
 
 var FunctionColors = map[string]string{
@@ -43,15 +43,15 @@ var FunctionColors = map[string]string{
 
 var TechExamples = map[string]string{
 	"Devices-Govern":      "e.g. CMDB policies, device standards documentation",
-	"Devices-Identify":    "e.g. Qualys, Tenable, Rapid7, Nessus",
+	"Devices-Identify":    "e.g. Qualys, Tenable, Rapid7, Nessus, or Cloud Provider APIs",
 	"Devices-Protect":     "e.g. CrowdStrike Falcon, SentinelOne, Tanium, Microsoft Defender",
-	"Devices-Detect":      "e.g. EDR telemetry, Sysmon, Microsoft Defender for Endpoint",
+	"Devices-Detect":      "e.g. EDR telemetry, Sysmon, Osquery, Auditd, Microsoft Defender for Endpoint",
 	"Devices-Respond":     "e.g. CrowdStrike RTR, Tanium, Carbon Black Live Response",
-	"Devices-Recover":     "e.g. Veeam, Cohesity, OS reimaging pipeline",
+	"Devices-Recover":     "e.g. Veeam, Cohesity, OS reimaging pipeline, or Cloud Provider automation",
 	"Networks-Govern":     "e.g. Network segmentation policy, firewall rule change management",
 	"Networks-Identify":   "e.g. Nmap, Shodan, Censys, network asset scanners",
-	"Networks-Protect":    "e.g. Palo Alto NGFW, Cisco ASA, Zscaler, Cloudflare",
-	"Networks-Detect":     "e.g. Zeek/Bro, Suricata, Darktrace, Cisco Stealthwatch",
+	"Networks-Protect":    "e.g. Palo Alto NGFW, Cisco ASA, Zscaler, Cloudflare,",
+	"Networks-Detect":     "e.g. Zeek/Bro, Suricata, Darktrace, Cisco Stealthwatch, Flow logging",
 	"Networks-Respond":    "e.g. Firewall ACL scripts, network isolation, Cisco ISE",
 	"Networks-Recover":    "e.g. SD-WAN failover, BGP route restoration, ISP failover",
 	"Applications-Govern":  "e.g. SDLC policies, AppSec program charter, risk acceptance process",

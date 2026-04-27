@@ -7,6 +7,7 @@ import (
 	"strings"
 	"time"
 
+	"cdmbuddy/internal/editor"
 	"cdmbuddy/internal/exporter"
 	"cdmbuddy/internal/model"
 	"cdmbuddy/internal/wizard"
@@ -15,6 +16,7 @@ import (
 
 var (
 	inputPath  string
+	editPath   string
 	outputPath string
 	csvPath    string
 	jsonPath   string
@@ -30,7 +32,29 @@ var rootCmd = &cobra.Command{
 		var matrix model.Matrix
 		var err error
 
-		if inputPath != "" {
+		// Handle Edit mode separately
+		if editPath != "" {
+			fmt.Printf("Loading data for editing from: %s\n", editPath)
+			matrix, err = model.LoadFromJson(editPath)
+			if err != nil {
+				fmt.Printf("Error loading JSON: %v\n", err)
+				os.Exit(1)
+			}
+
+			// In edit mode, we use the input filename to determine the base for other exports
+			if assessName == "" {
+				base := strings.TrimSuffix(editPath, ".json")
+				base = strings.TrimSuffix(base, "_cdm")
+				assessName = base
+			}
+
+			// Run the dedicated Editor instead of the Wizard
+			matrix, err = editor.RunEditor(matrix)
+			if err != nil {
+				fmt.Printf("Error running editor: %v\n", err)
+				os.Exit(1)
+			}
+		} else if inputPath != "" {
 			fmt.Printf("Loading data from: %s\n", inputPath)
 			matrix, err = model.LoadFromJson(inputPath)
 			if err != nil {
@@ -39,7 +63,7 @@ var rootCmd = &cobra.Command{
 			}
 		}
 
-		if !reportOnly {
+		if editPath == "" && !reportOnly {
 			// Always run the wizard to allow adding more data/reviewing unless --report is set
 			if inputPath == "" {
 				// If name not provided via flag, prompt for it
@@ -53,20 +77,31 @@ var rootCmd = &cobra.Command{
 					}
 				}
 				assessName = strings.ReplaceAll(assessName, " ", "_")
-
-				// Update jsonPath and csvPath if they're still the defaults
-				if jsonPath == "cdm_data.json" {
-					jsonPath = fmt.Sprintf("%s_cdm.json", assessName)
-				}
-				if csvPath == "cdm_output.csv" {
-					csvPath = fmt.Sprintf("%s_cdm.csv", assessName)
-				}
 			}
+		}
 
-			matrix, err = wizard.RunWizard(matrix)
+		// Shared path logic
+		if assessName != "" {
+			if jsonPath == "cdm_data.json" {
+				jsonPath = fmt.Sprintf("%s_cdm.json", assessName)
+			}
+			if csvPath == "cdm_output.csv" {
+				csvPath = fmt.Sprintf("%s_cdm.csv", assessName)
+			}
+			if outputPath == "cdm_output.xlsx" {
+				outputPath = fmt.Sprintf("%s_cdm.xlsx", assessName)
+			}
+		}
+
+		if editPath == "" && !reportOnly {
+			var aborted bool
+			matrix, aborted, err = wizard.RunWizard(matrix)
 			if err != nil {
 				fmt.Printf("Error running wizard: %v\n", err)
 				os.Exit(1)
+			}
+			if aborted {
+				return
 			}
 		}
 
@@ -108,6 +143,7 @@ func Execute() {
 
 func init() {
 	rootCmd.Flags().StringVarP(&inputPath, "input", "i", "", "Load CDM data from a JSON file")
+	rootCmd.Flags().StringVarP(&editPath, "edit", "e", "", "Browse and edit an existing JSON file")
 	rootCmd.Flags().StringVarP(&outputPath, "output", "o", "cdm_output.xlsx", "Output Excel file path")
 	rootCmd.Flags().StringVarP(&csvPath, "csv", "c", "cdm_output.csv", "Output CSV file path")
 	rootCmd.Flags().StringVar(&jsonPath, "export-json", "cdm_data.json", "Also export CDM data as JSON")

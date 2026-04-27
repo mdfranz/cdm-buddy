@@ -1,10 +1,13 @@
 package wizard
 
 import (
+	"bufio"
 	"fmt"
+	"os"
 	"strings"
 
 	"cdmbuddy/internal/model"
+	"github.com/charmbracelet/glamour"
 	"github.com/charmbracelet/huh"
 	"github.com/charmbracelet/lipgloss"
 )
@@ -20,7 +23,10 @@ var (
 	styleReverse = lipgloss.NewStyle().Reverse(true).Bold(true).Padding(0, 1)
 )
 
-func RunWizard(initial model.Matrix) (model.Matrix, error) {
+func RunWizard(initial model.Matrix) (model.Matrix, bool, error) {
+	// Clear screen for a clean start (works on Linux, macOS, and Windows Terminal)
+	fmt.Print("\033[H\033[2J")
+
 	matrix := initial
 	if matrix == nil {
 		matrix = model.EmptyMatrix()
@@ -39,32 +45,31 @@ func RunWizard(initial model.Matrix) (model.Matrix, error) {
 	var editingInstance string // Track which instance we're editing (if any)
 
 	if !isResuming {
-		mission := huh.NewNote().
-			Title("The Mission: Map Your Defense").
-			Description("The **Cyber Defense Matrix** reveals where your security is redundant and where it is completely absent.\n\n" +
-				"**1. Categories (Asset Classes)**\n" +
-				"Think of these as the 'folders' or broad rows in the matrix: Services, Devices, Networks, Apps, Data, and Users.\n\n" +
-				"**2. Specific Items (Asset Instances)**\n" +
-				"Within each category, you add the specific things you care about. For example:\n" +
-				"• Under **Devices**, you might add 'Workstations' and 'Servers'.\n" +
-				"• Under **Services**, you might add 'Salesforce' and 'Atlassian'.\n\n" +
-				"**3. Mapping the Defense**\n" +
-				"For every specific item, you will enter the **Technology, People, and Process** used to defend it across 6 functions (Identify, Protect, etc.).")
+		introMarkdown := "# The Mission: Map Your Defense\n\n" +
+			"The **Cyber Defense Matrix** reveals where your security is redundant and where it is completely absent.\n\n" +
+			"# 1. Categories (Asset Classes)\n\n" +
+			"Think of these as the 'folders' or broad rows in the matrix: **Services, Devices, Networks, Apps, Data, and Users.**\n\n" +
+			"# 2. Specific Items (Asset Instances)\n\n" +
+			"Within each category, you add the specific things you care about. For example:\n" +
+			"* Under **Devices**, you might add 'Workstations' and 'Servers'.\n" +
+			"* Under **Services**, you might add 'Salesforce' and 'Atlassian'.\n\n" +
+			"# 3. Mapping the Defense\n\n" +
+			"For every specific item, you will enter the **Technology, People, and Process** used to defend it across 6 functions (Identify, Protect, etc.).\n\n" +
+			"---\n\n" +
+			"# Rules of the Matrix\n\n" +
+			"**The MECE Rule**: Every capability belongs in **exactly one cell**. Map to the **primary** function only.\n\n" +
+			"*(type 'none' in any field to explicitly mark a ❌ gap)*"
 
-		axisNote := huh.NewNote().
-			Title("Rules of the Matrix").
-			Description(
-				"**The MECE Rule**: Every capability belongs in **exactly one cell**. Map to the **primary** function only.\n\n" +
-					"*(type 'none' in any field to explicitly mark a ❌ gap)*")
-
-		introForm := huh.NewForm(
-			huh.NewGroup(mission),
-			huh.NewGroup(axisNote),
+		r, _ := glamour.NewTermRenderer(
+			glamour.WithStandardStyle("dark"),
+			glamour.WithWordWrap(80),
 		)
+		out, _ := r.Render(introMarkdown)
+		fmt.Print(out)
 
-		if err := introForm.Run(); err != nil {
-			return nil, err
-		}
+		fmt.Print(styleYellow.Render("Press Enter to begin the mapping process..."))
+		bufio.NewReader(os.Stdin).ReadString('\n')
+
 		// Add all asset classes for new assessments
 		assetClassesToAdd = model.AssetClasses
 	} else {
@@ -84,7 +89,7 @@ func RunWizard(initial model.Matrix) (model.Matrix, error) {
 				Value(&resumeChoice),
 		))
 		if err := resumeForm.Run(); err != nil {
-			return nil, err
+			return nil, false, err
 		}
 
 		switch resumeChoice {
@@ -101,7 +106,7 @@ func RunWizard(initial model.Matrix) (model.Matrix, error) {
 					Value(&assetChoice),
 			))
 			if err := assetForm.Run(); err != nil {
-				return nil, err
+				return nil, false, err
 			}
 			assetClassesToAdd = []string{assetChoice}
 
@@ -116,7 +121,7 @@ func RunWizard(initial model.Matrix) (model.Matrix, error) {
 			}
 			if len(instanceOptions) == 0 {
 				fmt.Println("No instances to edit.")
-				return matrix, nil
+				return matrix, false, nil
 			}
 			editForm := huh.NewForm(huh.NewGroup(
 				huh.NewSelect[string]().
@@ -125,7 +130,7 @@ func RunWizard(initial model.Matrix) (model.Matrix, error) {
 					Value(&selectedInstance),
 			))
 			if err := editForm.Run(); err != nil {
-				return nil, err
+				return nil, false, err
 			}
 			// Find the asset class for this instance
 			for _, asset := range model.AssetClasses {
@@ -142,7 +147,7 @@ func RunWizard(initial model.Matrix) (model.Matrix, error) {
 
 		case "export":
 			// Skip wizard, go straight to export
-			return matrix, nil
+			return matrix, false, nil
 		}
 	}
 
@@ -183,11 +188,11 @@ func RunWizard(initial model.Matrix) (model.Matrix, error) {
 				if err := nameForm.Run(); err != nil {
 					if err == huh.ErrUserAborted {
 						if quit := handleAbort(matrix); quit {
-							return matrix, nil
+							return matrix, true, nil
 						}
 						continue
 					}
-					return nil, err
+					return nil, false, err
 				}
 
 				assetName = strings.TrimSpace(assetName)
@@ -298,11 +303,11 @@ func RunWizard(initial model.Matrix) (model.Matrix, error) {
 				if err := huh.NewForm(confirmGroup).Run(); err != nil {
 					if err == huh.ErrUserAborted {
 						if quit := handleAbort(matrix); quit {
-							return matrix, nil
+							return matrix, true, nil
 						}
 						continue
 					}
-					return nil, err
+					return nil, false, err
 				}
 
 				if markAsNone {
@@ -334,11 +339,11 @@ func RunWizard(initial model.Matrix) (model.Matrix, error) {
 				if err := inputForm.Run(); err != nil {
 					if err == huh.ErrUserAborted {
 						if quit := handleAbort(matrix); quit {
-							return matrix, nil
+							return matrix, true, nil
 						}
 						continue
 					}
-					return nil, err
+					return nil, false, err
 				}
 
 				// Handle "none" -> ❌, and skip if all empty
@@ -367,7 +372,7 @@ func RunWizard(initial model.Matrix) (model.Matrix, error) {
 		}
 	}
 
-	return matrix, nil
+	return matrix, false, nil
 }
 
 func handleAbort(matrix model.Matrix) bool {

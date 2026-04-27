@@ -70,9 +70,6 @@ Success! Your Cyber Defense Matrix has been exported to cdm_output.xlsx
 
 ```
 
-
-
-
 ### CLI Flags
 
 | Flag | Shorthand | Description | Default |
@@ -86,11 +83,8 @@ Success! Your Cyber Defense Matrix has been exported to cdm_output.xlsx
 
 ### Example: Resume an Assessment
 ```bash
-go run ./cmd/cdmbuddy -i my_previous_run.json
+cdmbuddy -i my_previous_run.json
 ```
-
-![sample-run](wizard.png)
-
 
 ### Run Tests
 
