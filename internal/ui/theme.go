@@ -14,7 +14,6 @@ func formTheme() *huh.Theme {
 	t := huh.ThemeBase()
 
 	var (
-		border = lipgloss.Color("239")
 		text   = lipgloss.Color("252")
 		muted  = lipgloss.Color("245")
 		accent = lipgloss.Color("110")
@@ -28,9 +27,7 @@ func formTheme() *huh.Theme {
 	t.FieldSeparator = lipgloss.NewStyle().SetString("\n")
 
 	t.Focused.Base = lipgloss.NewStyle().
-		PaddingLeft(1).
-		Border(lipgloss.NormalBorder(), false, false, false, true).
-		BorderForeground(border)
+		PaddingLeft(2)
 	t.Focused.Card = t.Focused.Base
 	t.Focused.Title = lipgloss.NewStyle().Bold(true).Foreground(accent)
 	t.Focused.NoteTitle = t.Focused.Title
@@ -64,7 +61,7 @@ func formTheme() *huh.Theme {
 	t.Focused.TextInput.Text = lipgloss.NewStyle().Foreground(text)
 
 	t.Blurred = t.Focused
-	t.Blurred.Base = lipgloss.NewStyle()
+	t.Blurred.Base = lipgloss.NewStyle().PaddingLeft(2)
 	t.Blurred.Card = t.Blurred.Base
 	t.Blurred.Title = lipgloss.NewStyle().Foreground(muted)
 	t.Blurred.NoteTitle = t.Blurred.Title

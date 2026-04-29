@@ -10,12 +10,12 @@ import (
 	"cdmbuddy/internal/ui"
 	"github.com/charmbracelet/huh"
 	"github.com/charmbracelet/lipgloss"
+	"golang.org/x/term"
 )
 
 var (
 	styleTitle        = lipgloss.NewStyle().Bold(true).Foreground(lipgloss.Color("230")).Background(lipgloss.Color("24")).Padding(0, 2)
 	styleSectionTitle = lipgloss.NewStyle().Bold(true).Foreground(lipgloss.Color("110"))
-	styleCard         = lipgloss.NewStyle().Border(lipgloss.RoundedBorder()).BorderForeground(lipgloss.Color("239")).Padding(0, 1)
 	styleTag          = lipgloss.NewStyle().Bold(true).Foreground(lipgloss.Color("230")).Background(lipgloss.Color("24")).Padding(0, 1)
 	styleIcon         = lipgloss.NewStyle().MarginRight(1)
 	styleDim          = lipgloss.NewStyle().Foreground(lipgloss.Color("245"))
@@ -25,8 +25,34 @@ var (
 	styleGreen        = lipgloss.NewStyle().Foreground(lipgloss.Color("79"))
 )
 
+func getTerminalWidth() int {
+	w, _, err := term.GetSize(int(os.Stderr.Fd()))
+	if err != nil || w <= 0 {
+		return 68
+	}
+	if w > 68 {
+		return 68
+	}
+	return w
+}
+
+func getStyleCard() lipgloss.Style {
+	return lipgloss.NewStyle().
+		Width(getTerminalWidth()).
+		Padding(0, 0)
+}
+
+func renderText(text string) string {
+	width := getTerminalWidth() - 2
+	return lipgloss.NewStyle().
+		Width(width).
+		PaddingLeft(2).
+		Foreground(lipgloss.Color("245")).
+		Render(text)
+}
+
 func RunWizard(initial model.Matrix) (model.Matrix, bool, error) {
-	// Clear screen for a clean start (works on Linux, macOS, and Windows Terminal)
+	// Clear screen for a clean start
 	fmt.Print("\033[H\033[2J")
 
 	matrix := initial
@@ -34,7 +60,7 @@ func RunWizard(initial model.Matrix) (model.Matrix, bool, error) {
 		matrix = model.EmptyMatrix()
 	}
 
-	// 1. Intro & Concepts (Skip if resuming)
+	// 1. Intro & Concepts
 	isResuming := false
 	for _, instances := range matrix {
 		if len(instances) > 0 {
@@ -44,11 +70,11 @@ func RunWizard(initial model.Matrix) (model.Matrix, bool, error) {
 	}
 
 	var assetClassesToAdd []string
-	var editingInstance string // Track which instance we're editing (if any)
+	var editingInstance string
 
 	if !isResuming {
 		fmt.Print(renderIntroScreen())
-		bufio.NewReader(os.Stdin).ReadString('\n')
+		bufio.NewReader(os.Stdin).ReadBytes('\n')
 
 		// Add all asset classes for new assessments
 		assetClassesToAdd = model.AssetClasses
@@ -520,9 +546,7 @@ func DisplaySummary(matrix model.Matrix) {
 
 	summaryStyle := lipgloss.NewStyle().
 		MarginTop(1).
-		Padding(0, 2).
-		Border(lipgloss.RoundedBorder()).
-		BorderForeground(lipgloss.Color("8"))
+		Padding(1, 2)
 
 	summaryText := fmt.Sprintf(
 		"  %s  %d/%d cells filled  •  %.0f%% coverage  •  %d marked no coverage",
@@ -536,16 +560,16 @@ func DisplaySummary(matrix model.Matrix) {
 
 func renderIntroScreen() string {
 	lines := []string{
-		styleTitle.Render("Cyber Defense Matrix"),
-		styleCard.Render(lipgloss.JoinVertical(lipgloss.Left,
+		styleTitle.Render("Cyber Defense Matrix (v1.1)"),
+		getStyleCard().Render(lipgloss.JoinVertical(lipgloss.Left,
 			styleSectionTitle.Render("Map coverage with intent"),
-			styleDim.Render("Add concrete asset instances, then capture the primary Technology, People, and Process used across each function."),
+			renderText("Add concrete asset instances, then capture the primary Technology, People, and Process used across each function."),
 			"",
 			renderIntroStep("1", "Choose an asset class", "Services, Devices, Networks, Applications, Data, or Users."),
 			renderIntroStep("2", "Add a real instance", "Use names like Customer Portal, Workstations, or Corp LAN."),
 			renderIntroStep("3", "Map the primary control", "Each capability belongs in one cell. Avoid double-counting."),
 			"",
-			styleYellow.Render("Tip: type 'none' in any field to record explicit no coverage."),
+			renderText(styleYellow.Render("Tip: ")+"type 'none' in any field to record explicit no coverage."),
 		)),
 		styleGreen.Render("Press Enter to start."),
 	}
@@ -554,31 +578,38 @@ func renderIntroScreen() string {
 
 func renderIntroStep(number, title, detail string) string {
 	stepTag := lipgloss.NewStyle().Bold(true).Foreground(lipgloss.Color("230")).Background(lipgloss.Color("236")).Padding(0, 1)
-	return lipgloss.JoinHorizontal(
-		lipgloss.Top,
-		stepTag.Render(number),
-		" ",
-		styleSectionTitle.Render(title),
-		"  ",
-		styleDim.Render(detail),
+	return lipgloss.JoinVertical(lipgloss.Left,
+		lipgloss.JoinHorizontal(lipgloss.Center,
+			stepTag.Render(number),
+			" ",
+			styleSectionTitle.Render(title),
+		),
+		renderText(detail),
+		"",
 	)
 }
 
 func renderAssetCard(asset, icon string) string {
-	return styleCard.Render(lipgloss.JoinVertical(lipgloss.Left,
+	header := lipgloss.NewStyle().PaddingLeft(1).Render(
 		lipgloss.JoinHorizontal(lipgloss.Center, styleTag.Render(icon+" "+asset), " ", styleSectionTitle.Render("Add an instance")),
-		styleDim.Render(model.AssetDescriptions[asset]),
-		styleDim.Render("Examples: "+model.AssetInstanceExamples[asset]),
+	)
+	return getStyleCard().Render(lipgloss.JoinVertical(lipgloss.Left,
+		header,
+		"",
+		renderText(model.AssetDescriptions[asset]),
+		renderText("Examples: "+model.AssetInstanceExamples[asset]),
 	))
 }
 
 func renderFunctionCard(asset, assetName, icon, functionName, stage string, step, total int, description, tip string) string {
-	lines := []string{
+	header1 := lipgloss.NewStyle().PaddingLeft(1).Render(
 		lipgloss.JoinHorizontal(lipgloss.Center,
 			styleTag.Render(icon+" "+asset),
 			" ",
 			styleSectionTitle.Render(assetName),
 		),
+	)
+	header2 := lipgloss.NewStyle().PaddingLeft(1).Render(
 		lipgloss.JoinHorizontal(lipgloss.Center,
 			renderStagePill(functionName, lipgloss.Color("24")),
 			" ",
@@ -586,12 +617,18 @@ func renderFunctionCard(asset, assetName, icon, functionName, stage string, step
 			" ",
 			styleDim.Render(fmt.Sprintf("%d of %d", step, total)),
 		),
-		description,
+	)
+
+	lines := []string{
+		header1,
+		header2,
+		"",
+		renderText(description),
 	}
 	if tip != "" {
-		lines = append(lines, styleYellow.Render("Tip: ")+styleDim.Render(tip))
+		lines = append(lines, "", renderText(styleYellow.Render("Tip: ")+tip))
 	}
-	return styleCard.Render(strings.Join(lines, "\n"))
+	return getStyleCard().Render(strings.Join(lines, "\n"))
 }
 
 func renderStageLabel(stage string) string {
