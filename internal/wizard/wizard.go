@@ -7,20 +7,22 @@ import (
 	"strings"
 
 	"cdmbuddy/internal/model"
-	"github.com/charmbracelet/glamour"
+	"cdmbuddy/internal/ui"
 	"github.com/charmbracelet/huh"
 	"github.com/charmbracelet/lipgloss"
 )
 
 var (
-	styleTitle   = lipgloss.NewStyle().Bold(true).Foreground(lipgloss.Color("12")).MarginBottom(1)
-	styleHeader  = lipgloss.NewStyle().Bold(true).Foreground(lipgloss.Color("14")).Border(lipgloss.NormalBorder(), false, false, true, false).BorderForeground(lipgloss.Color("14"))
-	styleIcon    = lipgloss.NewStyle().MarginRight(1)
-	styleDim     = lipgloss.NewStyle().Italic(true).Faint(true)
-	styleYellow  = lipgloss.NewStyle().Foreground(lipgloss.Color("11"))
-	styleBlue    = lipgloss.NewStyle().Foreground(lipgloss.Color("12"))
-	styleRed     = lipgloss.NewStyle().Foreground(lipgloss.Color("9"))
-	styleReverse = lipgloss.NewStyle().Reverse(true).Bold(true).Padding(0, 1)
+	styleTitle        = lipgloss.NewStyle().Bold(true).Foreground(lipgloss.Color("230")).Background(lipgloss.Color("24")).Padding(0, 2)
+	styleSectionTitle = lipgloss.NewStyle().Bold(true).Foreground(lipgloss.Color("110"))
+	styleCard         = lipgloss.NewStyle().Border(lipgloss.RoundedBorder()).BorderForeground(lipgloss.Color("239")).Padding(0, 1)
+	styleTag          = lipgloss.NewStyle().Bold(true).Foreground(lipgloss.Color("230")).Background(lipgloss.Color("24")).Padding(0, 1)
+	styleIcon         = lipgloss.NewStyle().MarginRight(1)
+	styleDim          = lipgloss.NewStyle().Foreground(lipgloss.Color("245"))
+	styleYellow       = lipgloss.NewStyle().Foreground(lipgloss.Color("215"))
+	styleBlue         = lipgloss.NewStyle().Foreground(lipgloss.Color("111"))
+	styleRed          = lipgloss.NewStyle().Foreground(lipgloss.Color("203"))
+	styleGreen        = lipgloss.NewStyle().Foreground(lipgloss.Color("79"))
 )
 
 func RunWizard(initial model.Matrix) (model.Matrix, bool, error) {
@@ -45,29 +47,7 @@ func RunWizard(initial model.Matrix) (model.Matrix, bool, error) {
 	var editingInstance string // Track which instance we're editing (if any)
 
 	if !isResuming {
-		introMarkdown := "# The Mission: Map Your Defense\n\n" +
-			"The **Cyber Defense Matrix** reveals where your security is redundant and where it is completely absent.\n\n" +
-			"# 1. Categories (Asset Classes)\n\n" +
-			"Think of these as the 'folders' or broad rows in the matrix: **Services, Devices, Networks, Apps, Data, and Users.**\n\n" +
-			"# 2. Specific Items (Asset Instances)\n\n" +
-			"Within each category, you add the specific things you care about. For example:\n" +
-			"* Under **Devices**, you might add 'Workstations' and 'Servers'.\n" +
-			"* Under **Services**, you might add 'Salesforce' and 'Atlassian'.\n\n" +
-			"# 3. Mapping the Defense\n\n" +
-			"For every specific item, you will enter the **Technology, People, and Process** used to defend it across 6 functions (Identify, Protect, etc.).\n\n" +
-			"---\n\n" +
-			"# Rules of the Matrix\n\n" +
-			"**The MECE Rule**: Every capability belongs in **exactly one cell**. Map to the **primary** function only.\n\n" +
-			"*(type 'none' in any field to explicitly mark a ❌ gap)*"
-
-		r, _ := glamour.NewTermRenderer(
-			glamour.WithStandardStyle("dark"),
-			glamour.WithWordWrap(80),
-		)
-		out, _ := r.Render(introMarkdown)
-		fmt.Print(out)
-
-		fmt.Print(styleYellow.Render("Press Enter to begin the mapping process..."))
+		fmt.Print(renderIntroScreen())
 		bufio.NewReader(os.Stdin).ReadString('\n')
 
 		// Add all asset classes for new assessments
@@ -78,7 +58,7 @@ func RunWizard(initial model.Matrix) (model.Matrix, bool, error) {
 		fmt.Println()
 
 		var resumeChoice string
-		resumeForm := huh.NewForm(huh.NewGroup(
+		resumeForm := ui.NewForm(huh.NewGroup(
 			huh.NewSelect[string]().
 				Title("What would you like to do?").
 				Options(
@@ -99,7 +79,7 @@ func RunWizard(initial model.Matrix) (model.Matrix, bool, error) {
 			for _, asset := range model.AssetClasses {
 				assetOptions = append(assetOptions, huh.NewOption(asset, asset))
 			}
-			assetForm := huh.NewForm(huh.NewGroup(
+			assetForm := ui.NewForm(huh.NewGroup(
 				huh.NewSelect[string]().
 					Title("Which asset class to add instances to?").
 					Options(assetOptions...).
@@ -123,7 +103,7 @@ func RunWizard(initial model.Matrix) (model.Matrix, bool, error) {
 				fmt.Println("No instances to edit.")
 				return matrix, false, nil
 			}
-			editForm := huh.NewForm(huh.NewGroup(
+			editForm := ui.NewForm(huh.NewGroup(
 				huh.NewSelect[string]().
 					Title("Which instance to re-enter?").
 					Options(instanceOptions...).
@@ -168,8 +148,6 @@ func RunWizard(initial model.Matrix) (model.Matrix, bool, error) {
 		for {
 			var assetName string
 			icon := model.AssetIcons[asset]
-			assetHeader := styleHeader.Render(fmt.Sprintf("%s %s", icon, strings.ToUpper(asset)))
-			assetDesc := styleDim.Render(model.AssetDescriptions[asset])
 
 			// When editing, pre-fill the instance name
 			if editingInstance != "" {
@@ -178,11 +156,11 @@ func RunWizard(initial model.Matrix) (model.Matrix, bool, error) {
 
 			// Skip the name prompt if we're editing
 			if editingInstance == "" {
-				nameForm := huh.NewForm(huh.NewGroup(
-					huh.NewNote().Description(fmt.Sprintf("%s\n%s", assetHeader, assetDesc)),
+				nameForm := ui.NewForm(huh.NewGroup(
+					huh.NewNote().Description(renderAssetCard(asset, icon)),
 					huh.NewInput().
-						Title(fmt.Sprintf("Add a specific %s instance?", asset)).
-						Placeholder("e.g. Workstations, Servers (leave blank to skip/finish)").
+						Title(fmt.Sprintf("Add %s", model.AssetEntryLabels[asset])).
+						Placeholder(model.AssetInstanceExamples[asset]+" (leave blank to finish)").
 						Value(&assetName),
 				))
 				if err := nameForm.Run(); err != nil {
@@ -206,7 +184,7 @@ func RunWizard(initial model.Matrix) (model.Matrix, bool, error) {
 				}
 			} else {
 				// When editing, just show a note and proceed
-				fmt.Println(styleHeader.Render(fmt.Sprintf("Editing: %s / %s", asset, assetName)))
+				fmt.Println(renderAssetCard(asset, icon) + "\n" + styleDim.Render("Editing: "+assetName))
 			}
 
 			instance := model.AssetInstance{
@@ -226,7 +204,7 @@ func RunWizard(initial model.Matrix) (model.Matrix, bool, error) {
 						options = append(options, huh.NewOption("Copy from "+existing.Name, existing.Name))
 					}
 
-					copyForm := huh.NewForm(huh.NewGroup(
+					copyForm := ui.NewForm(huh.NewGroup(
 						huh.NewSelect[string]().
 							Title(fmt.Sprintf("Prefill from existing %s instance?", asset)).
 							Options(options...).
@@ -253,15 +231,15 @@ func RunWizard(initial model.Matrix) (model.Matrix, bool, error) {
 				var processInstruction string
 
 				if contains(model.GovernFunctions, funcName) {
-					boomTag = styleYellow.Render("Cross-cutting")
+					boomTag = "Cross-cutting"
 					peopleInstruction = "e.g. Security Governance Lead, Risk Committee"
 					processInstruction = "e.g. Risk Exception Process, Security Policy Review"
 				} else {
 					isRight := contains(model.RightOfBoomFunctions, funcName)
 					if isRight {
-						boomTag = styleRed.Render("Right of Boom")
+						boomTag = "Right of Boom"
 					} else {
-						boomTag = styleBlue.Render("Left of Boom")
+						boomTag = "Left of Boom"
 					}
 					peopleInstruction = "e.g. SOC Analyst, SysAdmin"
 					processInstruction = "e.g. Patch Management SOP, IR Plan"
@@ -272,35 +250,33 @@ func RunWizard(initial model.Matrix) (model.Matrix, bool, error) {
 					techInstruction = "e.g. vendor tool or platform name"
 				}
 
-				instanceHeader := styleHeader.Render(fmt.Sprintf("%s %s: %s", icon, strings.ToUpper(asset), assetName))
-				funcHeader := styleReverse.Render(" " + funcName + " ")
 				funcDesc := styleDim.Render(model.FunctionDescriptions[funcName])
 
 				var tip string
-				tipPrefix := styleYellow.Render("💡 Tip:")
 				switch funcName {
 				case "Govern":
-					tip = styleDim.Render("Think of this as the 'Context'—policies, risk appetite, and oversight governing this asset.")
+					tip = "Think of this as the context layer: policy, oversight, and risk decisions around this asset."
 				case "Identify", "Protect", "Recover":
-					tip = styleDim.Render("Map based on the primary asset being acted upon.")
+					tip = "Map based on the primary asset being acted upon."
 				case "Detect":
-					tip = styleDim.Render("Map based on the Use Case (e.g., Insider Threat maps to Users).")
+					tip = "Map based on the use case being monitored, not just the tool name."
 				case "Respond":
-					tip = styleDim.Render("Map based on the asset being investigated or contained.")
+					tip = "Map based on the asset being investigated or contained."
 				}
 
 				var markAsNone bool
 				var cell model.Cell
-				noneHint := styleDim.Render("(type 'none' for ❌)")
+				noneHint := styleDim.Render("Type 'none' in any field to mark explicit no coverage.")
+				contextCard := renderFunctionCard(asset, assetName, icon, funcName, boomTag, funcIdx+1, len(orderedFunctions), funcDesc, tip)
 
 				confirmGroup := huh.NewGroup(
-					huh.NewNote().Description(fmt.Sprintf("%s\n\n%s %s (%d/%d)\n%s\n%s %s", instanceHeader, funcHeader, boomTag, funcIdx+1, len(orderedFunctions), funcDesc, tipPrefix, tip)),
+					huh.NewNote().Description(contextCard),
 					huh.NewConfirm().
-						Title("Mark all as ❌ (no coverage)?").
+						Title("No coverage for this function?").
 						Value(&markAsNone),
 				)
 
-				if err := huh.NewForm(confirmGroup).Run(); err != nil {
+				if err := ui.NewForm(confirmGroup).Run(); err != nil {
 					if err == huh.ErrUserAborted {
 						if quit := handleAbort(matrix); quit {
 							return matrix, true, nil
@@ -316,7 +292,7 @@ func RunWizard(initial model.Matrix) (model.Matrix, bool, error) {
 				}
 
 				inputGroup := huh.NewGroup(
-					huh.NewNote().Description(fmt.Sprintf("%s\n\n%s %s (%d/%d)\n%s\n%s %s", instanceHeader, funcHeader, boomTag, funcIdx+1, len(orderedFunctions), funcDesc, tipPrefix, tip)),
+					huh.NewNote().Description(contextCard),
 					huh.NewInput().
 						Title("Technology/Vendor").
 						Placeholder(techInstruction).
@@ -335,7 +311,7 @@ func RunWizard(initial model.Matrix) (model.Matrix, bool, error) {
 					huh.NewNote().Description(noneHint),
 				)
 
-				inputForm := huh.NewForm(inputGroup)
+				inputForm := ui.NewForm(inputGroup)
 				if err := inputForm.Run(); err != nil {
 					if err == huh.ErrUserAborted {
 						if quit := handleAbort(matrix); quit {
@@ -377,7 +353,7 @@ func RunWizard(initial model.Matrix) (model.Matrix, bool, error) {
 
 func handleAbort(matrix model.Matrix) bool {
 	var quit bool
-	confirmForm := huh.NewForm(huh.NewGroup(
+	confirmForm := ui.NewForm(huh.NewGroup(
 		huh.NewConfirm().
 			Title("Are you sure you want to quit?").
 			Value(&quit),
@@ -387,21 +363,19 @@ func handleAbort(matrix model.Matrix) bool {
 		return false
 	}
 
-	var saveChoice string
-	saveForm := huh.NewForm(huh.NewGroup(
-		huh.NewSelect[string]().
-			Title("Save progress before exiting?").
-			Options(
-				huh.NewOption("Save as JSON and Quit", "json"),
-				huh.NewOption("Quit without saving", "quit"),
-			).
-			Value(&saveChoice),
-	))
-	_ = saveForm.Run()
+	saveChoice, err := ui.PromptSingleKeyChoice(
+		"Save progress before exiting?",
+		ui.SingleKeyOption{Key: 's', Label: "Save as JSON and Quit", Value: "json"},
+		ui.SingleKeyOption{Key: 'q', Label: "Quit without saving", Value: "quit"},
+	)
+	if err != nil {
+		fmt.Printf("Unable to read exit choice: %v\n", err)
+		return false
+	}
 
 	if saveChoice == "json" {
 		var path string
-		pathForm := huh.NewForm(huh.NewGroup(
+		pathForm := ui.NewForm(huh.NewGroup(
 			huh.NewInput().Title("JSON output path").Value(&path).Placeholder("cdm_progress.json"),
 		))
 		_ = pathForm.Run()
@@ -432,7 +406,7 @@ func contains(slice []string, val string) bool {
 }
 
 func DisplaySummary(matrix model.Matrix) {
-	titleStyle := lipgloss.NewStyle().Bold(true).Foreground(lipgloss.Color("12")).MarginBottom(1)
+	titleStyle := lipgloss.NewStyle().Bold(true).Foreground(lipgloss.Color("110")).MarginBottom(1)
 	fmt.Println(titleStyle.Render("\n 📊 Cyber Defense Matrix Coverage"))
 
 	totalCells := 0
@@ -460,9 +434,9 @@ func DisplaySummary(matrix model.Matrix) {
 	}
 
 	// Build grid with box-drawing characters
-	filledStyle := lipgloss.NewStyle().Foreground(lipgloss.Color("10")).Bold(true)   // Green ✓
-	noneStyle := lipgloss.NewStyle().Foreground(lipgloss.Color("9")).Bold(true)      // Red ❌
-	emptyStyle := lipgloss.NewStyle().Foreground(lipgloss.Color("8")).Faint(true)    // Gray -
+	filledStyle := lipgloss.NewStyle().Foreground(lipgloss.Color("10")).Bold(true) // Green ✓
+	noneStyle := lipgloss.NewStyle().Foreground(lipgloss.Color("9")).Bold(true)    // Red ❌
+	emptyStyle := lipgloss.NewStyle().Foreground(lipgloss.Color("8")).Faint(true)  // Gray -
 
 	colWidth := 13
 	instanceWidth := 32
@@ -558,6 +532,86 @@ func DisplaySummary(matrix model.Matrix) {
 		noneCells,
 	)
 	fmt.Println(summaryStyle.Render(summaryText))
+}
+
+func renderIntroScreen() string {
+	lines := []string{
+		styleTitle.Render("Cyber Defense Matrix"),
+		styleCard.Render(lipgloss.JoinVertical(lipgloss.Left,
+			styleSectionTitle.Render("Map coverage with intent"),
+			styleDim.Render("Add concrete asset instances, then capture the primary Technology, People, and Process used across each function."),
+			"",
+			renderIntroStep("1", "Choose an asset class", "Services, Devices, Networks, Applications, Data, or Users."),
+			renderIntroStep("2", "Add a real instance", "Use names like Customer Portal, Workstations, or Corp LAN."),
+			renderIntroStep("3", "Map the primary control", "Each capability belongs in one cell. Avoid double-counting."),
+			"",
+			styleYellow.Render("Tip: type 'none' in any field to record explicit no coverage."),
+		)),
+		styleGreen.Render("Press Enter to start."),
+	}
+	return "\n" + strings.Join(lines, "\n") + "\n"
+}
+
+func renderIntroStep(number, title, detail string) string {
+	stepTag := lipgloss.NewStyle().Bold(true).Foreground(lipgloss.Color("230")).Background(lipgloss.Color("236")).Padding(0, 1)
+	return lipgloss.JoinHorizontal(
+		lipgloss.Top,
+		stepTag.Render(number),
+		" ",
+		styleSectionTitle.Render(title),
+		"  ",
+		styleDim.Render(detail),
+	)
+}
+
+func renderAssetCard(asset, icon string) string {
+	return styleCard.Render(lipgloss.JoinVertical(lipgloss.Left,
+		lipgloss.JoinHorizontal(lipgloss.Center, styleTag.Render(icon+" "+asset), " ", styleSectionTitle.Render("Add an instance")),
+		styleDim.Render(model.AssetDescriptions[asset]),
+		styleDim.Render("Examples: "+model.AssetInstanceExamples[asset]),
+	))
+}
+
+func renderFunctionCard(asset, assetName, icon, functionName, stage string, step, total int, description, tip string) string {
+	lines := []string{
+		lipgloss.JoinHorizontal(lipgloss.Center,
+			styleTag.Render(icon+" "+asset),
+			" ",
+			styleSectionTitle.Render(assetName),
+		),
+		lipgloss.JoinHorizontal(lipgloss.Center,
+			renderStagePill(functionName, lipgloss.Color("24")),
+			" ",
+			renderStageLabel(stage),
+			" ",
+			styleDim.Render(fmt.Sprintf("%d of %d", step, total)),
+		),
+		description,
+	}
+	if tip != "" {
+		lines = append(lines, styleYellow.Render("Tip: ")+styleDim.Render(tip))
+	}
+	return styleCard.Render(strings.Join(lines, "\n"))
+}
+
+func renderStageLabel(stage string) string {
+	switch stage {
+	case "Left of Boom":
+		return renderStagePill(stage, lipgloss.Color("31"))
+	case "Right of Boom":
+		return renderStagePill(stage, lipgloss.Color("124"))
+	default:
+		return renderStagePill(stage, lipgloss.Color("94"))
+	}
+}
+
+func renderStagePill(label string, background lipgloss.TerminalColor) string {
+	return lipgloss.NewStyle().
+		Bold(true).
+		Foreground(lipgloss.Color("230")).
+		Background(background).
+		Padding(0, 1).
+		Render(label)
 }
 
 func padRight(s string, width int) string {

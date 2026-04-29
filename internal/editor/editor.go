@@ -6,6 +6,7 @@ import (
 	"strings"
 
 	"cdmbuddy/internal/model"
+	"cdmbuddy/internal/ui"
 	"github.com/charmbracelet/huh"
 	"github.com/charmbracelet/lipgloss"
 )
@@ -40,7 +41,7 @@ func RunEditor(matrix model.Matrix) (model.Matrix, error) {
 		assetOptions = append(assetOptions, huh.NewOption("---", "spacer"))
 		assetOptions = append(assetOptions, huh.NewOption("Save & Exit", "exit"))
 
-		mainMenu := huh.NewForm(huh.NewGroup(
+		mainMenu := ui.NewForm(huh.NewGroup(
 			huh.NewSelect[string]().
 				Title("Editor: Select Asset Class").
 				Options(assetOptions...).
@@ -80,7 +81,7 @@ func RunEditor(matrix model.Matrix) (model.Matrix, error) {
 			instanceOptions = append(instanceOptions, huh.NewOption("---", "spacer"))
 			instanceOptions = append(instanceOptions, huh.NewOption("Back to Asset Classes", "back"))
 
-			instanceMenu := huh.NewForm(huh.NewGroup(
+			instanceMenu := ui.NewForm(huh.NewGroup(
 				huh.NewSelect[string]().
 					Title(fmt.Sprintf("%s: Select Instance", selectedAssetClass)).
 					Options(instanceOptions...).
@@ -108,10 +109,10 @@ func RunEditor(matrix model.Matrix) (model.Matrix, error) {
 
 			if selectedInstanceName == "add_new" {
 				var newName string
-				nameForm := huh.NewForm(huh.NewGroup(
+				nameForm := ui.NewForm(huh.NewGroup(
 					huh.NewInput().
 						Title(fmt.Sprintf("Name for new %s instance", selectedAssetClass)).
-						Placeholder("e.g. Workstations, Cloud-VMs").
+						Placeholder(model.AssetInstanceExamples[selectedAssetClass]).
 						Value(&newName),
 				))
 				if err := nameForm.Run(); err != nil {
@@ -175,7 +176,7 @@ func RunEditor(matrix model.Matrix) (model.Matrix, error) {
 				functionOptions = append(functionOptions, huh.NewOption("Delete This Instance", "delete"))
 				functionOptions = append(functionOptions, huh.NewOption("Back to Instances", "back"))
 
-				functionMenu := huh.NewForm(huh.NewGroup(
+				functionMenu := ui.NewForm(huh.NewGroup(
 					huh.NewSelect[string]().
 						Title(fmt.Sprintf("Editing %s / %s: Select Function", selectedAssetClass, selectedInstanceName)).
 						Options(functionOptions...).
@@ -202,7 +203,7 @@ func RunEditor(matrix model.Matrix) (model.Matrix, error) {
 
 				if selectedFunction == "delete" {
 					var confirmDelete bool
-					confirmDeleteForm := huh.NewForm(huh.NewGroup(
+					confirmDeleteForm := ui.NewForm(huh.NewGroup(
 						huh.NewConfirm().
 							Title(fmt.Sprintf("Are you sure you want to delete '%s' and ALL its data?", selectedInstanceName)).
 							Value(&confirmDelete),
@@ -232,7 +233,7 @@ func RunEditor(matrix model.Matrix) (model.Matrix, error) {
 				newCell := currentCell
 
 				var action string = "save"
-				editForm := huh.NewForm(
+				editForm := ui.NewForm(
 					huh.NewGroup(
 						huh.NewNote().Title(fmt.Sprintf("Editing %s / %s / %s", selectedAssetClass, selectedInstanceName, selectedFunction)),
 						huh.NewInput().
@@ -287,7 +288,7 @@ func RunEditor(matrix model.Matrix) (model.Matrix, error) {
 
 func handleAbort(matrix model.Matrix) bool {
 	var quit bool
-	confirmForm := huh.NewForm(huh.NewGroup(
+	confirmForm := ui.NewForm(huh.NewGroup(
 		huh.NewConfirm().
 			Title("Are you sure you want to quit the editor?").
 			Value(&quit),
@@ -297,21 +298,19 @@ func handleAbort(matrix model.Matrix) bool {
 		return false
 	}
 
-	var saveChoice string
-	saveForm := huh.NewForm(huh.NewGroup(
-		huh.NewSelect[string]().
-			Title("Save progress before exiting?").
-			Options(
-				huh.NewOption("Save as JSON and Quit", "json"),
-				huh.NewOption("Quit without saving", "quit"),
-			).
-			Value(&saveChoice),
-	))
-	_ = saveForm.Run()
+	saveChoice, err := ui.PromptSingleKeyChoice(
+		"Save progress before exiting?",
+		ui.SingleKeyOption{Key: 's', Label: "Save as JSON and Quit", Value: "json"},
+		ui.SingleKeyOption{Key: 'q', Label: "Quit without saving", Value: "quit"},
+	)
+	if err != nil {
+		fmt.Printf("Unable to read exit choice: %v\n", err)
+		return false
+	}
 
 	if saveChoice == "json" {
 		var path string
-		pathForm := huh.NewForm(huh.NewGroup(
+		pathForm := ui.NewForm(huh.NewGroup(
 			huh.NewInput().Title("JSON output path").Value(&path).Placeholder("cdm_progress.json"),
 		))
 		_ = pathForm.Run()
